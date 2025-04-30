@@ -1,0 +1,92 @@
+### PyCharm 专属配置 ###
+# JetBrains IDE 核心配置
+.idea/
+*.iml
+modules.xml
+workspace.xml
+dataSources/
+dataSources.local.xml
+vcs.xml
+encodings.xml
+tasks.xml
+jsLibraryMappings.xml
+*.ipr
+*.iws
+*.ids
+*.orig
+
+# 缓存和临时文件
+.idea/caches/
+.idea/libraries/
+.idea/shelf/
+.idea/tasks/
+.idea/uiDesigner.xml
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/sonarlint/
+
+### Python 通用配置 ###
+# 运行时文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+.env/
+.venv/
+ENV/
+env/
+
+# 日志和数据库
+*.log
+*.sqlite
+*.db
+
+# 测试覆盖率
+.coverage
+htmlcov/
+.coverage.*
+.pytest_cache/
+
+# 打包和分发
+build/
+dist/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+### 操作系统生成文件 ###
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+ehthumbs*.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+
+### 开发工具配置 ###
+# VSCode（可选）
+.vscode/
+
+# Sublime Text（可选）
+*.sublime-workspace
+*.sublime-project
+
+# 其他编辑器
+*.swp
+*.swo
+*.sublime*
+
+# 其他文件
+driver/
