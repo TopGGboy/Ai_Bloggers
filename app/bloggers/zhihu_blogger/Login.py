@@ -2,37 +2,18 @@ from selenium.webdriver.common.by import By
 from io import BytesIO
 from PIL import Image
 
-from app.core import EdgeDriver
 from app.tools import ElementWaiter
 
 
 class Login:
-    def __init__(self):
-        self.edgedriver = EdgeDriver.EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe')
-        self.driver = None
+    def __init__(self, driver):
+        self.driver = driver
         self.url = r'https://www.zhihu.com/signin?next=%2Fhot'
-        # 创建等待器
-        self.waiter = None
-
-        self.login_in = False
-
-    def init(self, login_type):
-        if login_type == 1:
-            self.driver = self.edgedriver.new_Edge()
-        elif login_type == 2:
-            self.driver = self.edgedriver.control_Edge()
-
         # 创建等待器
         self.waiter = ElementWaiter.ElementWaiter(driver=self.driver)
         self.driver.get(self.url)
 
-        # 检测是否已经登陆成功
-        if self.driver.current_url != self.url:
-            self.login_in = True
-            print("已经登录")
-        else:
-            self.login_in = False
-            print("未登录")
+        self.login_in = False
 
     # 账号密码登录
     def login_by_username_and_password(self, username, password):
@@ -74,7 +55,14 @@ class Login:
             print(f"二维码登录失败: {e}")
 
     def login_way(self, choice=1):
-        self.init(login_type=choice)
+        # 检测是否已经登陆成功
+        if self.driver.current_url != self.url:
+            self.login_in = True
+            print("已经登录")
+        else:
+            self.login_in = False
+            print("未登录")
+
         if choice == 1 and self.login_in == False:  # 扫码登录
             print("扫码登录中")
             self.login_by_qrcode()
@@ -135,5 +123,8 @@ class Login:
 
 
 if __name__ == '__main__':
-    login = Login()
+    from app.core import EdgeDriver
+
+    login = Login(
+        driver=EdgeDriver.EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe').control_Edge())
     login.run()
