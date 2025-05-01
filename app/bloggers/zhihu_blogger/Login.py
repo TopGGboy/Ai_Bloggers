@@ -14,23 +14,29 @@ class Login:
         # 创建等待器
         self.waiter = None
 
+        self.login_in = False
+
     def init(self, login_type):
         if login_type == 1:
             self.driver = self.edgedriver.new_Edge()
-            # 创建等待器
-            self.waiter = ElementWaiter.ElementWaiter(driver=self.driver)
-            self.driver.get(self.url)
         elif login_type == 2:
             self.driver = self.edgedriver.control_Edge()
-            # 创建等待器
-            self.waiter = ElementWaiter.ElementWaiter(driver=self.driver)
-            self.driver.get(self.url)
+
+        # 创建等待器
+        self.waiter = ElementWaiter.ElementWaiter(driver=self.driver)
+        self.driver.get(self.url)
+
+        # 检测是否已经登陆成功
+        if self.driver.current_url != self.url:
+            self.login_in = True
+            print("已经登录")
+        else:
+            self.login_in = False
+            print("未登录")
 
     # 账号密码登录
     def login_by_username_and_password(self, username, password):
         try:
-            # 输出现在的url
-            print(f"当前url: {self.driver.current_url}")
             # 点击密码登录
             self.waiter.safe_click(By.XPATH, '//div[@class="SignFlow-tab" and @role="button"]')
             print("正在使用账号密码登录...")
@@ -68,8 +74,8 @@ class Login:
             print(f"二维码登录失败: {e}")
 
     def login_way(self, choice=1):
-        if choice == 1:  # 扫码登录
-            self.init(login_type=choice)
+        self.init(login_type=choice)
+        if choice == 1 and self.login_in == False:  # 扫码登录
             print("扫码登录中")
             self.login_by_qrcode()
             self.show_qr_code()
@@ -81,14 +87,15 @@ class Login:
             else:
                 print("登录失败")
 
-        elif choice == 2:  # 账号密码登录
-            self.init(login_type=choice)
+        elif choice == 2 and self.login_in == False:  # 账号密码登录
             # 输入账号密码
             username = input("请输入你的用户名：")
             username = "13939826475"
             password = input("请输入你的密码：")
             password = "@@3085678256Gzj."
             self.login_by_username_and_password(username=username, password=password)
+        elif self.login_in == True:
+            print("已经登录成功")
         else:
             print("请输入正确的选择")
 
@@ -119,12 +126,12 @@ class Login:
             print(f"显示二维码图片失败: {e}")
 
     def run(self):
-        while True:
-            self.menu()
-            choice = int(input("请输入你的选择："))
-            if choice == 0:
-                break
-            self.login_way(choice=choice)
+        self.menu()
+        choice = int(input("请输入你的选择："))
+        if choice == 0:
+            print("退出程序")
+            return
+        self.login_way(choice=choice)
 
 
 if __name__ == '__main__':
