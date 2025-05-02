@@ -1,3 +1,5 @@
+from typing import Optional, List
+
 from selenium.webdriver.common.by import By
 
 from app.tools.ElementWaiter import ElementWaiter
@@ -6,20 +8,20 @@ from app.tools.ElementWaiter import ElementWaiter
 class GetHot:
     def __init__(self, driver):
         """
-        初始化GetHot1类，获取知乎热榜信息
+        初始化GetHot类，获取知乎热榜信息
         :param driver: WebDriver实例
         """
         self.driver = driver
         self.url = r"https://www.zhihu.com/hot"
         self.waiter = ElementWaiter(self.driver)
         self.driver.get(self.url)
-        self.hot_titles = []
 
-    def get_hot_title(self, num):
+    def get_hot_title(self, num) -> Optional[str]:
         """
-        获取指定序号的热榜标题
-        :param num: 热榜标题的序号
-        :return: 标题文本或None
+        获取指定序号的知乎热榜标题。
+
+        :param num:  热榜条目序号（从1开始）
+        :return: 标题文本，若未找到或超时则返回 None
         """
         try:
             # 定位到标题元素
@@ -31,41 +33,29 @@ class GetHot:
             print(f"获取标题失败: {e}")
             return None
 
-    def get_hot_titles_in_range(self, start, end):
+    def get_hot_titles_in_range(self, start, end) -> List[str]:
         """
         获取指定范围内的热榜标题
         :param start: 范围的起始序号
         :param end: 范围的结束序号
         """
+        titles = []
         for num in range(start, end + 1):
             title = self.get_hot_title(num)
             if title:
-                self.hot_titles.append(title)
+                titles.append(title)
+        return titles
 
-    def run(self, num_or_range):
-        """
-        获取指定序号或范围内的热榜标题
-        :param num_or_range: 可以是一个整数（表示获取单个标题）或一个包含两个整数的元组（表示获取一个范围内的标题）
-        """
-        if isinstance(num_or_range, int):
-            title = self.get_hot_title(num_or_range)
-            if title:
-                return title
-        elif isinstance(num_or_range, tuple) and len(num_or_range) == 2:
-            start, end = num_or_range
-            self.get_hot_titles_in_range(start, end)
-            return self.hot_titles
-        else:
-            print("输入无效，请输入一个数字或一个范围。")
+
+def test_zhihu_hot_fetcher():
+    edgedriver = EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe')
+    driver = edgedriver.control_Edge()
+    fetcher = ZhihuHotFetcher(driver)
+    fetcher.navigate_to_page()
+    title = fetcher.fetch_hot_title(1)
+    print(title)
+    driver.quit()
 
 
 if __name__ == '__main__':
-    from app.core.EdgeDriver import EdgeDriver
-
-    edgedriver = EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe')
-    driver = edgedriver.control_Edge()
-
-    get_hot = GetHot(driver)
-
-    title = get_hot.run((1, 3))
-    print(title)
+    test_zhihu_hot_fetcher()
