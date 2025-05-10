@@ -3,6 +3,8 @@ from io import BytesIO
 from PIL import Image
 
 from app.tools.ElementWaiter import ElementWaiter
+from app.core.Config import AppConfig
+from app.tools.LoggingConfig import LoggingConfig
 
 
 class Login:
@@ -11,6 +13,7 @@ class Login:
         self.driver = driver
         self.url = 'https://www.zhihu.com/signin?next=%2Fhot'
         self.waiter = ElementWaiter(driver=self.driver)  # 创建元素等待器
+        self.log = LoggingConfig(log_file_path=AppConfig.LOGFILEPATH).get_logger()
         self.login_in = False  # 登录状态
         self.image = None
         self.driver.get(self.url)
@@ -21,6 +24,7 @@ class Login:
         choice = self.__get_user_choice()
         if choice == 0:
             print("退出程序")
+            self.log.info("退出程序")
             return
         self.__execute_login(choice)
 
@@ -38,12 +42,14 @@ class Login:
             return choice
         except ValueError:
             print("输入无效，请输入数字 0、1 或 2。")
+            self.log.error("输入无效，请输入数字 0、1 或 2。")
             return -1
 
     def __execute_login(self, choice):
         """根据用户选择执行相应的登录方式"""
         if self.__is_already_logged_in():
             print("已经登录成功")
+            self.log.info("已经登录成功")
             return
 
         if choice == 1:
@@ -57,6 +63,7 @@ class Login:
             self.__login_by_username_and_password(username=username, password=password)
         else:
             print("请输入正确的选择")
+            self.log.info("请输入正确的选择")
 
     def __is_already_logged_in(self):
         """检查是否已登录"""
@@ -68,6 +75,7 @@ class Login:
             # 切换到密码登录 tab
             self.waiter.safe_click(By.XPATH, '//div[@class="SignFlow-tab" and @role="button"]')
             print("正在使用账号密码登录...")
+            self.log.info("正在使用账号密码登录...")
 
             # 输入用户名和密码
             username_input = self.waiter.wait_for_element(By.NAME, "username")
@@ -85,11 +93,14 @@ class Login:
 
             if self.waiter.wait_for_url_change(self.url, timeout=60):
                 print("登录成功")
+                self.log.info("登录成功")
             else:
                 print("登录失败：超时未跳转")
+                self.log.error("登录失败：超时未跳转")
 
         except Exception as e:
             print(f"账号密码登录失败: {e}")
+            self.log.error(f"账号密码登录失败: {e}")
 
     def __login_by_qrcode(self):
         """扫码登录：获取二维码并提示用户扫描"""
@@ -102,11 +113,14 @@ class Login:
 
             if self.waiter.wait_for_url_change(self.url, timeout=60):
                 print("登录成功")
+                self.log.info("登录成功")
             else:
                 print("登录失败：超时未跳转")
+                self.log.error("登录失败：超时未跳转")
 
         except Exception as e:
             print(f"二维码登录失败: {e}")
+            self.log.error(f"二维码登录失败: {e}")
 
     def __capture_qr_code(self, element):
         """
@@ -123,6 +137,7 @@ class Login:
             self.image.show()
         except Exception as e:
             print(f"显示二维码图片失败: {e}")
+            self.log.error(f"显示二维码图片失败: {e}")
 
 
 if __name__ == '__main__':

@@ -6,7 +6,9 @@ from selenium.webdriver.common.keys import Keys  # 添加导入Keys的语句
 import time
 
 from app.tools.ElementWaiter import ElementWaiter
+from app.tools.LoggingConfig import LoggingConfig
 from app.bloggers.zhihu_blogger.UploadFiles import UploadFiles
+from app.core.Config import AppConfig
 
 
 class SendEssay:
@@ -19,6 +21,7 @@ class SendEssay:
         self.driver = driver
         self.url = r'https://www.zhihu.com/hot'
         self.waiter = ElementWaiter(driver=self.driver)
+        self.log = LoggingConfig(log_file_path=AppConfig.LOGFILEPATH).get_logger()
         self.driver.get(self.url)
         self.update = False  # 标记是否为更新已有回答
         self.upload_files = UploadFiles()  # 文件上传工具实例
@@ -36,10 +39,12 @@ class SendEssay:
             # 获取所有窗口句柄
             window_handles = self.driver.window_handles
             print(f"当前网页的 URL: {self.driver.current_url}")
+            self.log.info(f"当前网页的 URL: {self.driver.current_url}")
             # 切换到新窗口
             self.driver.switch_to.window(window_handles[-1])
             # 打印当前网页的 URL
             print(f"当前网页的 URL: {self.driver.current_url}")
+            self.log.info(f"当前网页的 URL: {self.driver.current_url}")
 
             # 添加滚轮下滑操作
             actions = ActionChains(self.driver)
@@ -47,6 +52,7 @@ class SendEssay:
 
         except Exception as e:
             print(f"进入回答页面失败: {e}")
+            self.log.error(f"进入回答页面失败: {e}")
 
     def __process_answer_state(self):
         """
@@ -116,17 +122,19 @@ class SendEssay:
                 self.waiter.safe_click(By.XPATH,
                                        '//button[@type="button" and contains(@class, "Button css-78nr5c FEfUrdfMIKpQDJDqkjte Button--primary Button--blue epMJl0lFQuYbC7jrwr_o JmYzaky7MEPMFcJDLNMG")]')
                 print("回答已提交")
+                self.log.info("回答已提交")
             else:
                 # 点击修改按钮
                 self.waiter.safe_click(By.XPATH,
                                        '//button[@type="button" and contains(@class, "Button css-78nr5c FEfUrdfMIKpQDJDqkjte Button--primary Button--blue epMJl0lFQuYbC7jrwr_o JmYzaky7MEPMFcJDLNMG") and contains(text(), "提交修改")]')
                 print("回答已修改")
+                self.log.info("回答已修改")
 
             # 等待2s
             time.sleep(2)
         except Exception as e:
             print(f"回答提交失败: {e}")
-
+            self.log.error(f"回答提交失败: {e}")
     def __go_main_page(self):
         """
         关闭除主页面外的所有窗口，并切换回主页面。
@@ -147,6 +155,7 @@ class SendEssay:
 
         self.driver.switch_to.window(main_window)
         print("已返回主页面并关闭其他页面")
+        self.log.info("已返回主页面并关闭其他页面")
 
     def run(self, num: int, file_path: str):
         """

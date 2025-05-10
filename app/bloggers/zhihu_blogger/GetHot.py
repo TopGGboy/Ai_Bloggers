@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from app.tools.ElementWaiter import ElementWaiter
 
 
+
 class GetHot:
     def __init__(self, driver):
         """

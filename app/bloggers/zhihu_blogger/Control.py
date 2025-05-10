@@ -4,7 +4,9 @@ from app.bloggers.zhihu_blogger.Login import Login
 from app.bloggers.zhihu_blogger.GetHot import GetHot
 from app.bloggers.zhihu_blogger.SendEssay import SendEssay
 from app.core.ChatWithAi import ChatWithAi
+from app.core.Config import AppConfig
 from app.tools.Str2Md import Str2Md
+from app.tools.LoggingConfig import LoggingConfig
 
 
 class Control:
@@ -15,6 +17,7 @@ class Control:
         self.Zhihu_SendEssay = SendEssay(driver=driver)
         self.Zhihu_ai = ChatWithAi(api_key="sk-af0cc0ea7d764e4093ce7eca05f07d0b")
         self.str_2_md = Str2Md()
+        self.log = LoggingConfig(log_file_path=AppConfig.LOGFILEPATH).get_logger()
 
         # 基础配置
         self.md_path = md_path
@@ -45,6 +48,7 @@ class Control:
             self.titles = ["1"] * (self.end_index - self.start_index + 1)
         except ValueError:
             print("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
+            self.log.error("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
 
     def __handle_single_input(self):
         """处理单个数字输入"""
@@ -53,6 +57,7 @@ class Control:
             self.titles = "1"
         except ValueError:
             print("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
+            self.log.error("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
 
     def __mon_hot(self):
         """持续监控热榜变化，并触发AI生成和发布流程"""
@@ -60,6 +65,7 @@ class Control:
         while True:
             count += 1
             print(f"第 {count} 次检测")
+            self.log.info(f"第 {count} 次检测")
             self.driver.get(self.url)
 
             if isinstance(self.titles, str):
@@ -75,6 +81,7 @@ class Control:
         new_title = self.Zhihu_GetHot.get_hot_title(self.start_index)  # 获取当前标题
         if new_title != self.titles:  # 标题发生变化
             print(f"检测到榜单 {self.start_index} 发生变化")
+            self.log.info(f"检测到榜单 {self.start_index} 发生变化")
             self.titles = new_title  # 更新标题
             self.__generate_and_publish(new_title, self.start_index)
 
@@ -84,6 +91,7 @@ class Control:
             new_title = self.Zhihu_GetHot.get_hot_title(index)  # 获取当前标题
             if new_title != self.titles[index - self.start_index]:  # 标题发生变化
                 print(f"检测到榜单 {index} 发生变化")
+                self.log.info(f"检测到榜单 {index} 发生变化")
                 self.titles[index - self.start_index] = new_title  # 更新标题
                 self.__generate_and_publish(new_title, index)
 
