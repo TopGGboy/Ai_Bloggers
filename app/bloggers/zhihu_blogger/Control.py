@@ -1,3 +1,5 @@
+import time
+
 from app.bloggers.zhihu_blogger.Login import Login
 from app.bloggers.zhihu_blogger.GetHot import GetHot
 from app.bloggers.zhihu_blogger.SendEssay import SendEssay
@@ -65,6 +67,9 @@ class Control:
             elif isinstance(self.titles, list):
                 self.__check_and_process_multiple_titles()
 
+            # 每隔 10 min 检测一次
+            time.sleep(600)
+
     def __check_and_process_single_title(self):
         """检查并处理单个标题的变化"""
         new_title = self.Zhihu_GetHot.get_hot_title(self.start_index)  # 获取当前标题
@@ -84,8 +89,8 @@ class Control:
 
     def __generate_and_publish(self, title, index):
         """生成文案并保存为Markdown，然后发布文章"""
-        # response = self.Zhihu_ai.run(title)  # 生成文案
-        response = "这是测试文案"
+        response = self.Zhihu_ai.run(title)  # 生成文案
+        # response = "这是测试文案"
         file_name = fr"{self.md_path}\example_{index}.md"  # 生成文件名
         self.str_2_md.save_2_md(response, file_name=file_name)  # 保存为Markdown
         self.Zhihu_SendEssay.run(index, file_name)  # 发布文章

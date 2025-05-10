@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Optional
 
 from pywinauto import Application
@@ -59,6 +60,7 @@ class UploadFiles:
         """
         try:
             open_button = self.dlg.Button2
+            time.sleep(2)
             open_button.click()
             print("文件路径已设置并点击了“打开”按钮。")
             return True

@@ -16,7 +16,13 @@ class EdgeDriver:
 
     # 启动新的Edge
     def new_Edge(self):
-        driver = Edge(service=self.ser)
+        options = Options()
+
+        # disable-blink-features=AutomationControlled：禁用 blink 特征
+        options.add_argument("disable-blink-features=AutomationControlled")
+
+        driver = Edge(service=self.ser, options=options)
+
         return driver
 
     # 控制已经存在的Edge
@@ -26,4 +32,7 @@ class EdgeDriver:
 
 
 if __name__ == '__main__':
-    pass
+    driver = EdgeDriver().new_Edge()
+    driver.get("https://www.baidu.com")
+    while True:
+        pass

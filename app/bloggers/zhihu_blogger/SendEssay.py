@@ -102,11 +102,14 @@ class SendEssay:
             self.waiter.safe_click(By.XPATH,
                                    """//div[@class='Editable-docModal-container' and .//div[@class='Editable-docModal-uploader-text' and text()='选择要导入的文档']]""")
 
+            # 等待2s
+            time.sleep(3)
+
             # 进入文件管理上传文件
             self.upload_files.run(file_path)
 
             # 等待2s
-            time.sleep(2)
+            time.sleep(5)
 
             if not self.update:
                 # 点击提交按钮
@@ -118,6 +121,9 @@ class SendEssay:
                 self.waiter.safe_click(By.XPATH,
                                        '//button[@type="button" and contains(@class, "Button css-78nr5c FEfUrdfMIKpQDJDqkjte Button--primary Button--blue epMJl0lFQuYbC7jrwr_o JmYzaky7MEPMFcJDLNMG") and contains(text(), "提交修改")]')
                 print("回答已修改")
+
+            # 等待2s
+            time.sleep(2)
         except Exception as e:
             print(f"回答提交失败: {e}")
 
@@ -132,9 +138,12 @@ class SendEssay:
         main_window = window_handles[-2]
 
         # 关闭其他窗口
-        for window in window_handles[2:]:
+        for window in window_handles[len(window_handles) - 1:]:
             self.driver.switch_to.window(window)
+            time.sleep(2)
             self.driver.close()
+
+        time.sleep(2)
 
         self.driver.switch_to.window(main_window)
         print("已返回主页面并关闭其他页面")
@@ -153,6 +162,7 @@ class SendEssay:
         self.__to_hot_item(num)
         self.__process_answer_state()
         self.__write_answer(file_path=file_path)
+        time.sleep(2)
         self.__go_main_page()
 
 
@@ -162,11 +172,12 @@ def test_zhihu_answer_bot():
     """
     edgedriver = EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe')
     driver = edgedriver.control_Edge()
-    bot = ZhihuAnswerBot(driver)
-    bot.navigate_to_hot_page()
-    bot.run(num=1, file_path=r'D:\pythonproject\Ai_Blogger\Md\example_1.md')
+    sendessay = SendEssay(driver)
+    sendessay.run(num=1, file_path=r'D:\pythonproject\Ai_Blogger\Md\example_1.md')
     driver.quit()
 
 
 if __name__ == '__main__':
+    from app.core.EdgeDriver import EdgeDriver
+
     test_zhihu_answer_bot()
