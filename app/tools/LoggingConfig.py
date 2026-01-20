@@ -9,7 +9,7 @@ class LoggingConfig:
     日志配置类，用于统一管理文件和控制台日志输出。
     支持彩色日志输出（仅控制台），并提供标准日志接口。
     """
-    
+
     # 类变量用于实现单例模式
     _instance = None
     _initialized = False
@@ -39,9 +39,9 @@ class LoggingConfig:
         # 防止重复初始化
         if hasattr(self, '_initialized') and self._initialized:
             return
-        
+
         self._initialized = True
-        
+
         # 设置日志路径和文件
         self.log_file_path = log_file_path or Path.cwd()
         self.log_filepath = self._build_log_filepath(log_filename)
@@ -49,7 +49,7 @@ class LoggingConfig:
 
         # 获取根日志记录器并设置全局日志级别
         self.logger = logging.getLogger()
-        
+
         # 检查是否已经有配置过的处理器
         if self.logger.handlers:
             # 如果已经有处理器，则不重复添加

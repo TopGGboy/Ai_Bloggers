@@ -100,13 +100,17 @@ class SendEssay:
             actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()  # 全选文本
             actions.send_keys(Keys.DELETE).perform()  # 删除选中的文本
 
-            # 点击上传文件
-            # 点击文档按钮
+            # 点击导入
             self.waiter.safe_click(By.XPATH,
-                                   """//button[@aria-label='文档' and @type='button' and contains(@class, 'Button ToolbarButton css-3tq0b4 FEfUrdfMIKpQDJDqkjte Button--plain fEPKGkUK5jyc4fUuT0QP')]""")
+                                   """//div[@class='css-dvxtzn']/span[@class='css-8atqhb' and text()='导入']/../..""")
+
+            # 点击导入文档
+            self.waiter.safe_click(By.XPATH,
+                                   """//button[@aria-label='导入文档' and contains(text(),'导入文档')]""")
+
             # 点击文档导入按钮
             self.waiter.safe_click(By.XPATH,
-                                   """//div[@class='Editable-docModal-container' and .//div[@class='Editable-docModal-uploader-text' and text()='选择要导入的文档']]""")
+                                   """//div[@role='button' and .//div[text()='点击选择本地文档或拖动文件到窗口上传']]""")
 
             # 等待2s
             time.sleep(3)
@@ -135,6 +139,7 @@ class SendEssay:
         except Exception as e:
             print(f"回答提交失败: {e}")
             self.log.error(f"回答提交失败: {e}")
+
     def __go_main_page(self):
         """
         关闭除主页面外的所有窗口，并切换回主页面。
