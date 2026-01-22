@@ -1,0 +1,16 @@
+# config.yaml
+app:
+  name: "Ai_Blogger"
+  version: "1.0.0"
+  logfile_path: "D:/pythonproject/Ai_Blogger/Log_File"
+  log_level: "INFO"
+  debug_mode: false
+  max_workers: 4
+
+api:
+  deepseek:
+    api_key: "sk-c5888f9dfebf4e3f97023dbf9eced41c"  # 支持环境变量引用
+    base_url: "https://api.deepseek.com"
+    max_tokens: 1024
+    timeout: 60
+    retry_attempts: 3
