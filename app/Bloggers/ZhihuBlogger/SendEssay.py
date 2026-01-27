@@ -7,7 +7,7 @@ import time
 
 from app.tools.ElementWaiter import ElementWaiter
 from app.tools.LoggingConfig import LoggingConfig
-from app.bloggers.zhihu_blogger.UploadFiles import UploadFiles
+from app.Bloggers.ZhihuBlogger.UploadFiles import UploadFiles
 from app.core.Config import AppConfig
 
 
