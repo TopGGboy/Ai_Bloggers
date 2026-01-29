@@ -6,3 +6,4 @@ if __name__ == '__main__':
     mast_control = MastControl(edge_driver_path=edge_driver_path, md_path=md_path)
 
     mast_control.run()
+

@@ -1,5 +1,5 @@
 from app.core.EdgeDriver import EdgeDriver
-from app.bloggers.zhihu_blogger.Control import Control
+from app.Bloggers.ZhihuBlogger.Control import Control
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.Config import AppConfig
 

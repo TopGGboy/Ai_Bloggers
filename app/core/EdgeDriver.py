@@ -21,12 +21,23 @@ class EdgeDriver:
         # disable-blink-features=AutomationControlled：禁用 blink 特征
         options.add_argument("disable-blink-features=AutomationControlled")
 
+        # 添加反检测配置
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option("useAutomationExtension", False)
+
         driver = Edge(service=self.ser, options=options)
+
+        # 隐藏webdriver特征（关键反检测）
+        driver.execute_cdp_cmd(
+            "Page.addScriptToEvaluateOnNewDocument",
+            {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"}
+        )
 
         return driver
 
     # 控制已经存在的Edge
     def control_Edge(self):
+        # msedge.exe --remote-debugging-port=9222 --user-data-dir="D:\pythonproject\Ai_Blogger\driver\seleniumEdge"
         driver = Edge(options=self.Edge_op, service=self.ser)
         return driver
 

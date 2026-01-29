@@ -5,7 +5,7 @@ import os
 from app.Bloggers.ZhihuBlogger.Login import Login
 from app.Bloggers.ZhihuBlogger.GetHot import GetHot
 from app.Bloggers.ZhihuBlogger.SendEssay import SendEssay
-from app.core.ChatWithAi import ChatWithAi
+from app.Bloggers.ZhihuBlogger.WriteText import WriteZhihuText
 from app.core.Config import AppConfig
 from app.tools.Str2Md import Str2Md
 from app.tools.LoggingConfig import LoggingConfig
@@ -17,7 +17,7 @@ class Control:
         self.Zhihu_Login = Login(driver=driver)
         self.Zhihu_GetHot = GetHot(driver=driver)
         self.Zhihu_SendEssay = SendEssay(driver=driver)
-        self.Zhihu_ai = ChatWithAi(api_key="sk-af0cc0ea7d764e4093ce7eca05f07d0b")
+        self.Zhihu_WriteText = WriteZhihuText(model_name="deepseek-chat")
         self.str_2_md = Str2Md()
         self.log = LoggingConfig(log_file_path=AppConfig.LOGFILEPATH).get_logger()
 
@@ -27,10 +27,10 @@ class Control:
         self.url = "https://www.zhihu.com/hot"
 
         # 用户输入相关状态
-        self.titles = None
         self.user_input = ""
         self.start_index = None
         self.end_index = None
+
         self.hot_titles = None
 
     def __init_run(self):
@@ -54,7 +54,8 @@ class Control:
             self.driver.get(self.url)
 
             # 1. 持久化保存 热榜标题
-            self.__save_hot_title()
+            self.__save_hot_title(
+                hot_titles_file=r"D:\pythonproject\Ai_Blogger\app\Bloggers\ZhihuBlogger\hot_titles.json")
             # 2. 检查热榜标题变化
             if self.start_index and self.end_index:
                 self.__check_hot_titles()
@@ -62,13 +63,12 @@ class Control:
                 self.__check_hot_single_title()
 
             # 每隔 10 min 检测一次
-            # time.sleep(600)
+            time.sleep(600)
 
     def __handle_range_input(self):
         """处理范围输入，如 1-3"""
         try:
             self.start_index, self.end_index = map(int, self.user_input.split('-'))
-            self.titles = ["1"] * (self.end_index - self.start_index + 1)
         except ValueError:
             print("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
             self.log.error("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
@@ -77,7 +77,6 @@ class Control:
         """处理单个数字输入"""
         try:
             self.start_index = int(self.user_input)
-            self.titles = "1"
         except ValueError:
             print("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
             self.log.error("输入格式错误，请输入一个数字或一个范围（例如 1-3）。")
@@ -92,7 +91,7 @@ class Control:
             if new_title != self.hot_titles[index]:
                 self.log.info(f"检测到榜单 {index + 1} 发生变化")
                 self.hot_titles[index] = new_title
-                # self.__generate_and_publish(new_title, index)
+                self.__generate_and_publish(hot_titles[index])
 
     def __check_hot_single_title(self):
         """检查单个热榜标题变化"""
@@ -100,7 +99,7 @@ class Control:
         if new_title[0]['title'] != self.hot_titles[0]:
             self.log.info(f"检测到榜单 {self.start_index} 发生变化")
             self.hot_titles[0] = new_title
-            # self.__generate_and_publish(new_title, self.start_index)
+            self.__generate_and_publish(new_title[0])
 
     def __save_hot_title(self, hot_titles_file="./hot_titles.json"):
         """
@@ -144,13 +143,53 @@ class Control:
             except Exception as e:
                 self.log.error(f"保存热榜标题失败: {e}")
 
-    def __generate_and_publish(self, title, index):
-        """生成文案并保存为Markdown，然后发布文章"""
-        response = self.Zhihu_ai.run(title)  # 生成文案
-        # response = "这是测试文案"
-        file_name = fr"{self.md_path}\example_{index}.md"  # 生成文件名
-        self.str_2_md.save_2_md(response, file_name=file_name)  # 保存为Markdown
-        self.Zhihu_SendEssay.run(index, file_name)  # 发布文章
+    def __generate_and_publish(self, hot_title: dict):
+        """
+        生成文案并保存为Markdown，然后发布文章
+
+        hot_title: 热榜信息 {'title': '标题', 'href': '链接'}
+        """
+        # hot_text_content = self.Zhihu_GetHot.get_hot_content(hot_title['href'])
+        # hot_text, _ = self.Zhihu_WriteText.write_hot_text(hot_title['title'], hot_text_content)
+        # # response = "这是测试文案"
+
+        # 使用标题生成安全的文件名
+        # sanitized_title = self.__sanitize_filename(hot_title['title'])
+        sanitized_title = "多地推动「人情岗」「世袭岗」整治，国企「近亲繁殖」问题为啥难以根除？"
+        file_name = os.path.join(self.md_path, f"{sanitized_title}.md")
+
+        # 保存Markdown文件
+        # self.str_2_md.save_2_md(hot_text, file_name=file_name)
+        self.log.info(f"文章已保存至: {file_name}")
+
+        # 发布文章
+        self.Zhihu_SendEssay.run(hot_title['href'], file_name)
+
+    def __sanitize_filename(self, title: str) -> str:
+        """
+        清理标题中的特殊字符，使其适合作为文件名
+
+        Args:
+            title: 原始标题
+
+        Returns:
+            清理后的标题，可用于文件名
+        """
+        # 替换不能用于文件名的特殊字符
+        invalid_chars = r'<>"|*?/\:'
+        sanitized = title
+        for char in invalid_chars:
+            sanitized = sanitized.replace(char, '_')
+
+        # 移除多余的空白字符
+        sanitized = ' '.join(sanitized.split())
+
+        # 限制文件名长度（Windows最大255字符，但保留扩展名和其他部分）
+        max_length = 200
+        if len(sanitized) > max_length:
+            sanitized = sanitized[:max_length]
+
+        return sanitized
 
     def run(self):
         """主运行入口"""
