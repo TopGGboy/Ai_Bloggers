@@ -124,12 +124,39 @@ class SendEssay:
 
             time.sleep(1)
 
-            # 点击文档导入按钮
+            # 是否存在文档导入按钮
             upload_trigger_btn = self.waiter.wait_for_element(By.XPATH,
                                                               """//div[@role='button' and .//div[text()='点击选择本地文档或拖动文件到窗口上传']]""")
 
-            # 用javaScript代码实现点击文档导入按钮
-            self.driver.execute_script("arguments[0].click();", upload_trigger_btn)
+            # 方法1：用JS阻止默认行为并直接设置文件
+            script = """
+               // 阻止按钮的默认点击行为
+               arguments[0].addEventListener('click', function(e) {
+                   e.preventDefault();
+                   e.stopPropagation();
+
+                   // 找到隐藏的file input
+                   var fileInput = document.querySelector('input[type="file"]');
+                   if (!fileInput) {
+                       // 如果不存在，创建一个
+                       fileInput = document.createElement('input');
+                       fileInput.type = 'file';
+                       fileInput.style.display = 'none';
+                       document.body.appendChild(fileInput);
+                   }
+
+                   // 设置文件
+                   fileInput.files = arguments[1];
+                   // 触发change事件
+                   fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+               }, true);
+
+               // 触发点击
+               arguments[0].click();
+               """
+
+            # 创建File对象（需要先获取文件路径）
+            self.driver.execute_script(script, upload_trigger_btn, file_path)
 
             # 等待2s
             time.sleep(1)
@@ -173,23 +200,23 @@ class SendEssay:
         """
         关闭除主页面外的所有窗口，并切换回主页面。
         """
-        # 获取所有窗口句柄
-        window_handles = self.driver.window_handles
-        print(window_handles)
-
-        main_window = window_handles[-2]
-
-        # 关闭其他窗口
-        for window in window_handles[len(window_handles) - 1:]:
-            self.driver.switch_to.window(window)
-            time.sleep(2)
-            self.driver.close()
-
-        time.sleep(2)
-
-        self.driver.switch_to.window(main_window)
-        print("已返回主页面并关闭其他页面")
-        self.log.info("已返回主页面并关闭其他页面")
+        # # 获取所有窗口句柄
+        # window_handles = self.driver.window_handles
+        # print(window_handles)
+        #
+        # main_window = window_handles[-2]
+        #
+        # # 关闭其他窗口
+        # for window in window_handles[len(window_handles) - 1:]:
+        #     self.driver.switch_to.window(window)
+        #     time.sleep(2)
+        #     self.driver.close()
+        #
+        # time.sleep(2)
+        #
+        # self.driver.switch_to.window(main_window)
+        # print("已返回主页面并关闭其他页面")
+        # self.log.info("已返回主页面并关闭其他页面")
 
     def run(self, href: str, file_path: str):
         """
@@ -207,7 +234,7 @@ class SendEssay:
         self.__process_answer_state()
         self.__write_answer(file_path=file_path)
         time.sleep(2)
-        self.__go_main_page()
+        # self.__go_main_page()
 
 
 def test_zhihu_answer_bot():
@@ -217,7 +244,8 @@ def test_zhihu_answer_bot():
     edgedriver = EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe')
     driver = edgedriver.control_Edge()
     sendessay = SendEssay(driver)
-    sendessay.run(num=1, file_path=r'D:\pythonproject\Ai_Blogger\Md\example_1.md')
+    sendessay.run(href="https://www.zhihu.com/question/1999857203272783816",
+                  file_path=r"D:\pythonproject\Ai_Blogger\Md\example_1.md")
     driver.quit()
 
 

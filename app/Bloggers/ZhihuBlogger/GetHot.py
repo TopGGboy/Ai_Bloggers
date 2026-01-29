@@ -1,3 +1,5 @@
+import time
+
 from typing import Optional, List
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -46,13 +48,19 @@ class GetHot:
         """
         获取知乎热榜内容
         :param href: 热榜链接
-        :return:
+        :return: 热榜内容{"question_head": 问题简介, "content": 热榜内容}
         """
         try:
             self.driver.get(href)
             self.waiter.wait_for_element(By.CSS_SELECTOR, "div.List-item")
 
+            # 1. 点击展开
+            self.waiter.safe_click(By.XPATH, """//button[contains(text(),'显示全部')]""")
+
+            time.sleep(1)
+
             html_data = self.driver.page_source
+
             result = self.__parse_hot_content(html_data)
 
             if self.logging:
@@ -104,8 +112,8 @@ class GetHot:
     def __parse_hot_content(self, hot_content_html):
         """
         解析知乎热榜内容页面
-        :param hot_content_html:
-        :return: 热榜内容列表
+        :param hot_content_html: 热榜内容页面HTML代码
+        :return: {"question_head": 问题简介, "content": 热榜内容}
         """
         soup = BeautifulSoup(hot_content_html, 'html.parser')
 
@@ -118,7 +126,18 @@ class GetHot:
             content_html = item.find("div", class_="RichContent-inner")
             hot_contents.append(content_html.text)
 
-        return hot_contents
+        question_head = None
+        content_span = soup.find('span', class_='RichText ztext css-10o75c2')
+
+        if content_span:
+            question_head = content_span.text
+
+        result = {
+            "question_head": question_head,
+            "content": hot_contents
+        }
+
+        return result
 
     def get_hot_title(self, num) -> Optional[str]:
         """

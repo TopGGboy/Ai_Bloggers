@@ -35,7 +35,7 @@ class Control:
 
     def __init_run(self):
         """执行初始化流程：登录 + 获取用户输入"""
-        # self.Zhihu_Login.run()  # 登录
+        self.Zhihu_Login.run()  # 登录
         print("请输入一个数字监控单个标题，或者输入一个范围（例如 1-3）监控多个标题。")
         self.user_input = input("请输入: ").strip()
 
@@ -149,17 +149,17 @@ class Control:
 
         hot_title: 热榜信息 {'title': '标题', 'href': '链接'}
         """
-        # hot_text_content = self.Zhihu_GetHot.get_hot_content(hot_title['href'])
-        # hot_text, _ = self.Zhihu_WriteText.write_hot_text(hot_title['title'], hot_text_content)
+        hot_text_content = self.Zhihu_GetHot.get_hot_content(hot_title['href'])
+        hot_text, _ = self.Zhihu_WriteText.write_hot_text(hot_title['title'], hot_text_content['content'],
+                                                          hot_text_content['question_head'])
         # # response = "这是测试文案"
 
         # 使用标题生成安全的文件名
-        # sanitized_title = self.__sanitize_filename(hot_title['title'])
-        sanitized_title = "多地推动「人情岗」「世袭岗」整治，国企「近亲繁殖」问题为啥难以根除？"
+        sanitized_title = self.__sanitize_filename(hot_title['title'])
         file_name = os.path.join(self.md_path, f"{sanitized_title}.md")
 
         # 保存Markdown文件
-        # self.str_2_md.save_2_md(hot_text, file_name=file_name)
+        self.str_2_md.save_2_md(hot_text, file_name=file_name)
         self.log.info(f"文章已保存至: {file_name}")
 
         # 发布文章
