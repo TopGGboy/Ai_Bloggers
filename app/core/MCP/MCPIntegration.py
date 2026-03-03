@@ -4,6 +4,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from app.core.MCP.ToolRegistry import create_tool_registry
+from app.core.AiAgent import LLM
 
 
 class MCPIntegration:
@@ -14,6 +15,7 @@ class MCPIntegration:
         # 延迟创建工具注册器实例，避免循环依赖
         self.client = client
         self.model_name = model_name
+        self.llm = LLM()
         self.tools = None
         self.tool_functions = None
 
@@ -103,7 +105,7 @@ class MCPIntegration:
 
         for iteration in range(max_iterations):
             # 调用大模型
-            content, current_messages = get_response_from_llm(
+            content, current_messages = self.llm.get_response_from_llm(
                 user_prompt=user_prompt if iteration == 0 else None,  # 首次调用传递用户问题，后续调用传递None
                 client=client,
                 model=model,

@@ -2,6 +2,7 @@ import json
 import os
 
 from app.core.AiAgent.llm import LLM
+from app.core.MCP import MCPIntegration
 
 SYSTEM_PROMPT = """
 # 知乎博主
@@ -11,6 +12,9 @@ SYSTEM_PROMPT = """
 
 ## 创作核心
 面向知乎用户输出**“真人手写感”**回答，核心做到“能共鸣、有收获、不生硬”。热门素材仅作参考，需以自身视角重构，严禁搬运套作；语言平衡口语化与书面感，不粗俗不啰嗦，成长相关的视角自然融入，不刻意凸显背景、不反复强调出身经历。
+
+## 信息核实与补充
+在创作过程中，若涉及具体事件、数据、概念定义、最新动态或其他需要客观事实支撑的内容，且自身知识储备存在不确定时，可调用 **`get_internet_data`（网络搜索）MCP** 进行查询核实，确保引用信息的准确性。搜索所得信息需经自身消化理解，并以个人口吻和视角自然融入行文，严禁直接复制粘贴，确保最终内容仍保持强烈的“个人体感”与“手写感”。
 
 ## 具体创作要求
 ### 一、标题（按需设置，不硬凑）
@@ -50,7 +54,8 @@ SYSTEM_PROMPT = """
 2. 标题与内容强关联，不夸张、不夸大，不使用博眼球的极端表述；
 3. 不聊无体感的内容，不装高深、不卖惨、不拔高，真诚至上，成长背景仅为视角基底，不反复提及、不刻意凸显；
 4. 符合知乎社区风格，不炫技、不抬杠，让读者感受到真实的个人想法与交流感；
-5. 全程保持表达的一致性，视角统一，不脱节、不刻意造人设。
+5. 全程保持表达的一致性，视角统一，不脱节、不刻意造人设；
+6. **使用网络搜索仅为辅助信息核实与补充，核心观点与个人体感必须源于自身，严禁让回答变成单纯的信息堆砌或百科摘要。**
 
 ## 输出要求
 直接生成完整知乎回答，标题按需添加（无需额外标注），全文自然流畅、有个人辨识度，无AI模板感，追求“真人手写、真诚交流”的效果，无需补充任何说明性文字。
@@ -68,6 +73,7 @@ class WriteZhihuText:
         self.model_name = model_name
         self.llm = LLM()
         self.client = self.llm.create_client(model_name)
+        self.mcp_integration = MCPIntegration()
 
     def write_hot_text(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
         """
@@ -93,7 +99,7 @@ class WriteZhihuText:
         问题简介：{question_head}
         """
 
-        content, new_msg_history = self.llm.get_response_from_llm(
+        content, new_msg_history = self.mcp_integration.chat_with_tools(
             user_prompt=user_prompt,
             client=self.client,
             model=self.model_name,
@@ -136,4 +142,24 @@ class WriteZhihuText:
 
 
 if __name__ == '__main__':
-    pass
+    # 创建 WriteZhihuText 实例
+    writer = WriteZhihuText(model_name="deepseek-chat")
+
+    # 定义热点话题信息
+    hot_title = "人工智能是否会取代人类工作？"
+    hot_content = [
+        "近年来，AI技术飞速发展，许多传统岗位面临被替代的风险。",
+        "例如，自动驾驶技术可能影响司机群体，智能客服系统正在取代人工客服。"
+    ]
+    question_head = "普通人应该如何应对AI带来的职业冲击？"
+
+    # 调用 write_hot_text 方法生成文章
+    article, history = writer.write_hot_text(
+        hot_title=hot_title,
+        hot_content=hot_content,
+        question_head=question_head
+    )
+
+    # 输出生成的文章内容
+    print("生成的知乎文章：")
+    print(article)

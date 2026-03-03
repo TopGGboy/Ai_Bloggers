@@ -123,7 +123,7 @@ class InternetData:
                 return {"success": False, "message": "未找到相关数据", "content": ""}
 
             internet_data = self.__parse_internet_data(internet_data)
-            if not parsed_data:
+            if not internet_data:
                 return {"success": False, "message": "数据解析失败", "content": ""}
 
             content, new_msg_history = self.llm.get_response_from_llm(
