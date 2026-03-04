@@ -15,7 +15,7 @@ ALL_MODELS = [
 class LLM:
     def __init__(self):
         # 使用 YAML 配置的日志路径
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger()
+        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("LLM")
 
     def create_client(self, model: str):
         """

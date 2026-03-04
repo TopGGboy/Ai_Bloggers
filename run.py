@@ -1,9 +1,8 @@
 from app.core.MastControl import MastControl
 
 if __name__ == '__main__':
-    edge_driver_path = r'driver/edgedriver/msedgedriver.exe'
     md_path = r'D:\pythonproject\Ai_Blogger\Md'
-    mast_control = MastControl(edge_driver_path=edge_driver_path, md_path=md_path)
+    playwright_driver_data = r'D:\pythonproject\Ai_Blogger\driver\playwright_data'
+    mast_control = MastControl(md_path=md_path, playwright_driver_data=playwright_driver_data)
 
     mast_control.run()
-

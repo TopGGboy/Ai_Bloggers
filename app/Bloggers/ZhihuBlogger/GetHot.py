@@ -1,39 +1,38 @@
 import time
-
 from typing import Optional, List
 from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-
+from playwright.sync_api import Page
 from app.tools.ElementWaiter import ElementWaiter
 from app.tools.LoggingConfig import LoggingConfig
-from app.core.Config import AppConfig
+from app.core.config_manager import config
 
 
 class GetHot:
-    def __init__(self, driver, logging=False):
+    def __init__(self, page: Page, logging=False):
         """
-        初始化GetHot类，获取知乎热榜信息
-        :param driver: WebDriver实例
+        初始化 GetHot 类，获取知乎热榜信息
+
+        :param page: Playwright Page 实例
         """
-        self.driver = driver
+        self.page = page
         self.url = r"https://www.zhihu.com/hot"
-        self.waiter = ElementWaiter(self.driver)
-        self.log = LoggingConfig(log_file_path=AppConfig.LOGFILEPATH).get_logger()
+        self.waiter = ElementWaiter(self.page)
+        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("GetHot")
         self.logging = logging
 
     def get_hot_title_list(self, begin, end):
         """
         获取指定范围内的热榜标题
 
-        :param begin: 开始序号(min: 1)
-        :param end: 结束序号(max: 30)
+        :param begin: 开始序号 (min: 1)
+        :param end: 结束序号 (max: 30)
         :return: 热榜标题列表
         """
         try:
-            self.driver.get(self.url)
-            self.waiter.wait_for_element(By.CSS_SELECTOR, "div.HotList-list")
+            self.page.goto(self.url)
+            self.waiter.wait_for_element('div.HotList-list', selector_type="css")
 
-            html_data = self.driver.page_source
+            html_data = self.page.content()
             result = self.__parse_hot_title_list(html_data)
 
             if self.logging:
@@ -41,25 +40,25 @@ class GetHot:
             return result[begin - 1:end]
         except Exception as e:
             if self.logging:
-                self.log.error(f"获取知乎热榜失败: {e}")
+                self.log.error(f"获取知乎热榜失败：{e}")
             return []
 
     def get_hot_content(self, href):
         """
         获取知乎热榜内容
         :param href: 热榜链接
-        :return: 热榜内容{"question_head": 问题简介, "content": 热榜内容}
+        :return: 热榜内容{"question_head": 问题简介，"content": 热榜内容}
         """
         try:
-            self.driver.get(href)
-            self.waiter.wait_for_element(By.CSS_SELECTOR, "div.List-item")
+            self.page.goto(href)
+            self.waiter.wait_for_element('div.List-item', selector_type="css")
 
             # 1. 点击展开
-            self.waiter.safe_click(By.XPATH, """//button[contains(text(),'显示全部')]""")
+            self.waiter.safe_click('//button[contains(text(),"显示全部")]')
 
             time.sleep(1)
 
-            html_data = self.driver.page_source
+            html_data = self.page.content()
 
             result = self.__parse_hot_content(html_data)
 
@@ -68,14 +67,14 @@ class GetHot:
             return result
         except Exception as e:
             if self.logging:
-                self.log.error(f"获取知乎热榜内容失败: {e}")
+                self.log.error(f"获取知乎热榜内容失败：{e}")
             return []
 
     def __parse_hot_title_list(self, hot_title_html):
         """
         解析知乎热榜标题列表页面
 
-        :param hot_title_html: 热榜标题列表页面HTML代码
+        :param hot_title_html: 热榜标题列表页面 HTML 代码
         :return:
         """
         soup = BeautifulSoup(hot_title_html, 'html.parser')
@@ -112,8 +111,8 @@ class GetHot:
     def __parse_hot_content(self, hot_content_html):
         """
         解析知乎热榜内容页面
-        :param hot_content_html: 热榜内容页面HTML代码
-        :return: {"question_head": 问题简介, "content": 热榜内容}
+        :param hot_content_html: 热榜内容页面 HTML 代码
+        :return: {"question_head": 问题简介，"content": 热榜内容}
         """
         soup = BeautifulSoup(hot_content_html, 'html.parser')
 
@@ -124,7 +123,7 @@ class GetHot:
 
         for item in hot_items:
             content_html = item.find("div", class_="RichContent-inner")
-            hot_contents.append(content_html.text)
+            hot_contents.append(content_html.text if content_html else "")
 
         question_head = None
         content_span = soup.find('span', class_='RichText ztext css-10o75c2')
@@ -143,17 +142,20 @@ class GetHot:
         """
         获取指定序号的知乎热榜标题。
 
-        :param num:  热榜条目序号（从1开始）
+        :param num:  热榜条目序号（从 1 开始）
         :return: 标题文本，若未找到或超时则返回 None
         """
         try:
             # 定位到标题元素
-            title_element = self.waiter.wait_for_element(By.XPATH,
-                                                         f'//section[@class="HotItem"][{num}]//h2[@class="HotItem-title"]')
+            title_element = self.waiter.wait_for_element(
+                f'//section[@class="HotItem"][{num}]//h2[@class="HotItem-title"]'
+            )
             # 返回标题文本
-            return title_element.text
+            if title_element:
+                return title_element.inner_text()
+            return None
         except Exception as e:
-            print(f"获取标题失败: {e}")
+            print(f"获取标题失败：{e}")
             return None
 
     def get_hot_titles_in_range(self, start, end) -> List[str]:
@@ -171,12 +173,13 @@ class GetHot:
 
 
 def test_zhihu_hot_fetcher():
-    from app.core.EdgeDriver import EdgeDriver
+    from app.core.PlaywrightDriver import PlaywrightDriver
 
-    edgedriver = EdgeDriver(edge_driver_path=r'../../../driver/edgedriver/msedgedriver.exe')
-    driver = edgedriver.control_Edge()
+    USER_DATA_DIR = r"D:\pythonproject\Ai_Blogger\driver\playwright_data"
+    playwright_driver = PlaywrightDriver(user_data_dir=USER_DATA_DIR)
+    context, page = playwright_driver.launch_browser(viewport_type="pc")
 
-    get_hot = GetHot(driver, logging=True)
+    get_hot = GetHot(page, logging=True)
 
     """
     思路：
@@ -192,7 +195,7 @@ def test_zhihu_hot_fetcher():
         "link": "链接",
         "content": "内容"
     }
-    4. ai生成文案
+    4. ai 生成文案
     """
     hot_title_lists = get_hot.get_hot_title_list(1, 1)
     print(hot_title_lists)

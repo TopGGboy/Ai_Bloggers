@@ -1,155 +1,253 @@
-import logging
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
-from selenium.webdriver.common.keys import Keys
+from playwright.sync_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
+from typing import Optional, Literal, Union
+import random
+
+from app.tools.LoggingConfig import LoggingConfig
+from app.core.config_manager import config
+
+# 限定condition可选值（类型提示+参数校验）
+ConditionType = Literal["visible", "hidden", "attached", "detached"]
 
 
 class ElementWaiter:
-    def __init__(self, driver, default_timeout=10, poll_frequency=0.5, ignored_exceptions=None):
+    def __init__(self, page: Page, timeout: int = 10000):
         """
-        初始化等待工具类
-        :param driver: WebDriver实例
-        :param default_timeout: 默认超时时间（秒）
-        :param poll_frequency: 轮询间隔（秒）
-        :param ignored_exceptions: 忽略的异常列表（如[TimeoutException]）
-        """
-        self.driver = driver
-        self.default_timeout = default_timeout
-        self.poll_frequency = poll_frequency
-        self.ignored_exceptions = ignored_exceptions or [TimeoutException, StaleElementReferenceException]
+        初始化等待元素
 
-    def wait_for_element(self, by, value, condition="presence", timeout=None, custom_message=None):
+        :param page: Playwright Page对象
+        :param timeout: 等待超时时间(ms)
         """
-        通用等待方法，支持多种条件
-        :param by: 定位方式（如By.ID）
-        :param value: 定位值
-        :param condition: 等待条件（presence/visibility/clickable/text）
-        :param timeout: 覆盖默认超时时间
-        :param custom_message: 自定义日志消息
-        :return: WebElement 或 None
-        """
-        conditions = {
-            "presence": EC.presence_of_element_located,
-            "visibility": EC.visibility_of_element_located,
-            "clickable": EC.element_to_be_clickable,
-            "text": EC.text_to_be_present_in_element
-        }
-        timeout = timeout or self.default_timeout
-        locator = (by, value)
-        try:
-            element = WebDriverWait(
-                self.driver,
-                timeout,
-                poll_frequency=self.poll_frequency,
-                ignored_exceptions=self.ignored_exceptions
-            ).until(conditions[condition](locator))
+        self.page = page
+        self.timeout = timeout
+        # 反风控：随机延迟配置（模拟真人操作）
+        self.click_delay_range = (50, 200)  # 点击延迟50-200ms
+        self.type_delay_range = (50, 150)  # 打字延迟50-150ms
 
-            logging.info(f"元素已找到：定位方式={by}, 值={value}, 条件={condition}")
-            print(f"元素已找到：定位方式={by}, 值={value}, 条件={condition}")
-            return element
-        except TimeoutException as e:
-            message = custom_message or f"等待元素超时：定位方式={by}, 值={value}, 条件={condition}"
-            logging.error(message)
-            return None  # 或抛出异常，根据需求调整
-        except KeyError:
-            raise ValueError(f"不支持的等待条件：{condition}")
+        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("ElementWaiter")
 
-    def wait_for_custom_condition(self, condition_func, timeout=None, *args):
+    def wait_for_element(self,
+                         selector: str,
+                         selector_type: Literal["css", "xpath"] = "xpath",
+                         condition: ConditionType = 'visible',
+                         timeout: Optional[int] = None) -> Optional[Locator]:
         """
-        自定义等待条件（支持Lambda或函数）
-        :param condition_func: 返回布尔值的函数
-        :param timeout: 超时时间
-        :return: 函数返回值或 None
+        等待元素出现（优化：支持CSS/XPath，减少冗余，参数校验）
+
+        :param selector: 选择器（CSS/XPath）
+        :param selector_type: 选择器类型（css/xpath）
+        :param condition: 等待条件（枚举限定，避免传错）
+        :param timeout: 超时时长(ms)
+        :return: Locator 对象或 None（detached状态返回None）
         """
-        timeout = timeout or self.default_timeout
-        try:
-            return WebDriverWait(
-                self.driver,
-                timeout,
-                poll_frequency=self.poll_frequency,
-                ignored_exceptions=self.ignored_exceptions
-            ).until(condition_func(*args))
-        except TimeoutException:
-            logging.error("自定义条件等待超时")
+        # 参数校验（新增：友好提示错误）
+        if timeout is None:
+            timeout = self.timeout
+        if timeout <= 0:
+            self.log.error("超时时间必须大于0")
             return None
 
-    def wait_for_url_change(self, current_url, timeout=None, custom_message=None):
-        """
-        等待URL发生变化
-        :param current_url: 当前URL
-        :param timeout: 覆盖默认超时时间
-        :param custom_message: 自定义日志消息
-        :return: True: 改变了 False: 未改变
-        """
-        timeout = timeout or self.default_timeout
         try:
-            WebDriverWait(
-                self.driver,
-                timeout,
-                poll_frequency=self.poll_frequency,
-                ignored_exceptions=self.ignored_exceptions
-            ).until(EC.url_changes(current_url))
+            # 统一创建locator（解决冗余问题）
+            if selector_type == "css":
+                locator = self.page.locator(selector).first
+            elif selector_type == "xpath":
+                locator = self.page.locator(f"xpath={selector}").first
+            else:
+                self.log.error(f"不支持的选择器类型：{selector_type}")
+                return None
 
-            logging.info(f"URL 已发生变化：从 {current_url}")
-            print(f"URL 已发生变化：从 {current_url}")
+            # 统一等待逻辑（减少冗余）
+            locator.wait_for(state=condition, timeout=timeout)
+
+            # detached状态返回None（避免误导）
+            if condition == "detached":
+                self.log.info(f"元素已移除DOM：{selector}")
+                return None
+
+            self.log.info(f"元素满足条件 {condition}：{selector}")
+            return locator
+
+        except PlaywrightTimeoutError:
+            self.log.warning(f"等待元素超时（{condition}）：{selector}")
+            return None
+        # 仅捕获Playwright相关异常，避免掩盖关键错误（优化：缩小异常范围）
+        except Exception as e:
+            self.log.error(f"等待元素失败：{e}", exc_info=False)
+            return None
+
+    def safe_click(self,
+                   selector: str,
+                   selector_type: Literal["css", "xpath"] = "xpath",
+                   timeout: Optional[int] = None):
+        """
+        安全点击元素（优化：等待可点击，加随机延迟，反风控）
+        :param selector: 选择器
+        :param selector_type: 选择器类型（css/xpath）
+        :param timeout:  超时时间(ms)
+        """
+        try:
+            locator = self.wait_for_element(
+                selector=selector,
+                selector_type=selector_type,
+                condition="visible",
+                timeout=timeout
+            )
+            if not locator:
+                return
+
+            # 反风控：随机延迟点击，模拟真人
+            locator.click(
+                delay=random.randint(*self.click_delay_range),
+                timeout=timeout or self.timeout
+            )
+            self.log.info(f"安全点击元素：{selector}")
+
+        except PlaywrightTimeoutError:
+            self.log.warning(f"点击元素超时：{selector}")
+        except Exception as e:
+            self.log.error(f"点击元素失败：{e}", exc_info=False)
+
+    def clear_input_field(self,
+                          selector: str,
+                          selector_type: Literal["css", "xpath"] = "xpath",
+                          timeout: Optional[int] = None):
+        """
+        清空输入框内容（优化：彻底清空，适配多平台）
+
+        Args:
+            selector: 选择器
+            selector_type: 选择器类型（css/xpath）
+            timeout: 超时时间（毫秒）
+        """
+        try:
+            locator = self.wait_for_element(
+                selector=selector,
+                selector_type=selector_type,
+                condition="visible",
+                timeout=timeout
+            )
+            if not locator:
+                return
+
+            # 优化：先聚焦→选中全部→清空，适配知乎/小红书输入框
+            locator.focus()
+            self.page.keyboard.press("Control+A")  # 全选内容
+            self.page.keyboard.press("Backspace")  # 删除
+            locator.fill("")  # 兜底清空
+            self.log.info(f"清空输入框：{selector}")
+
+        except Exception as e:
+            self.log.error(f"清空输入框失败：{e}", exc_info=False)
+
+    def wait_for_url_change(self,
+                            old_url: str,
+                            timeout: Optional[int] = None) -> bool:
+        """
+        等待 URL 变化（最终修复版：解决参数未接收+JS注入风险）
+
+        Args:
+            old_url: 原始 URL
+            timeout: 超时时间（毫秒，与其他方法统一）
+
+        Returns:
+            bool: URL 是否发生变化
+        """
+        try:
+            if timeout is None:
+                timeout = self.timeout
+
+            # 核心修复：JS函数显式接收args参数（[oldUrl]）
+            self.page.wait_for_function(
+                # 箭头函数接收参数 → 避免JS注入 + 变量未定义
+                "([oldUrl]) => window.location.href !== oldUrl",
+                arg=[old_url],  # 传递参数到JS函数
+                timeout=timeout
+            )
+            self.log.info(f"URL已变化，原URL：{old_url[:50]}...")
             return True
-        except TimeoutException as e:
-            message = custom_message or f"等待URL变化超时：当前URL={current_url}"
-            logging.error(message)
+        except PlaywrightTimeoutError:
+            self.log.warning(f"等待 URL 变化超时（{timeout}ms）")
             return False
         except Exception as e:
-            logging.error(f"等待URL变化时发生错误：{e}")
+            self.log.error(f"等待 URL 变化失败：{e}", exc_info=False)
             return False
 
-    def safe_click(self, by, value, retries=3):
+    def get_element_text(self,
+                         selector: str,
+                         selector_type: Literal["css", "xpath"] = "xpath",
+                         text_type: Literal["inner", "content"] = "inner",
+                         timeout: Optional[int] = None) -> Optional[str]:
         """
-        带有重试机制的点击方法。该方法会尝试点击指定的元素，如果点击失败（例如元素过期），则会重试指定的次数。
+        获取元素文本内容（优化：支持inner_text/text_content）
 
-        :param by: 定位元素的方式，例如 By.ID, By.XPATH 等。
-        :param value: 定位元素的值，与 by 参数一起使用。
-        :param retries: 尝试点击的最大次数，默认为 3 次。
-        :return: 如果成功点击元素，则返回该元素；如果所有重试都失败，则返回 False。
-        """
-        for attempt in range(retries):
-            element = self.wait_for_element(by, value, condition="clickable")
-            if element:
-                try:
-                    element.click()
-                    logging.info(f"点击成功：第{attempt + 1}次尝试")
-                    print(f"点击成功：第{attempt + 1}次尝试")
-                    return element
-                except StaleElementReferenceException:
-                    logging.warning(f"元素已过期，正在重试：第{attempt + 1}次")
-        return False
+        Args:
+            selector: 选择器
+            selector_type: 选择器类型（css/xpath）
+            text_type: 获取文本类型（inner: 渲染后文本，content: 原始文本）
+            timeout: 超时时间（毫秒）
 
-    def clear_input_field(self, by, value, timeout=None):
+        Returns:
+            元素文本内容或 None
         """
-        清空输入框内容
-        :param by: 定位方式（如By.ID）
-        :param value: 定位值
-        :param timeout: 覆盖默认超时时间
-        :return: 成功返回True，失败返回False
-        """
-        element = self.wait_for_element(by, value, condition="clickable", timeout=timeout)
-        if element:
-            try:
-                element.click()
-                element.send_keys(Keys.CONTROL + "a")
-                element.send_keys(Keys.DELETE)
-                logging.info(f"输入框已清空：定位方式={by}, 值={value}")
-                print(f"输入框已清空：定位方式={by}, 值={value}")
-                return True
-            except Exception as e:
-                logging.error(f"清空输入框时发生错误：{e}")
-                return False
-        else:
-            logging.warning(f"无法找到元素进行清空操作：定位方式={by}, 值={value}")
-            return False
+        try:
+            locator = self.wait_for_element(
+                selector=selector,
+                selector_type=selector_type,
+                condition="visible",
+                timeout=timeout
+            )
+            if not locator:
+                return None
 
-    @staticmethod
-    def set_implicit_wait(driver, timeout=10):
-        """设置隐式等待（全局生效）"""
-        driver.implicitly_wait(timeout)
-        logging.info(f"隐式等待已设置为 {timeout} 秒")
+            # 优化：支持两种文本获取方式
+            if text_type == "inner":
+                text = locator.inner_text()
+            else:
+                text = locator.text_content()
+
+            self.log.info(f"获取元素文本：{text[:50]}...")
+            return text.strip() if text else None
+
+        except Exception as e:
+            self.log.error(f"获取元素文本失败：{e}", exc_info=False)
+            return None
+
+    def type_text(self,
+                  selector: str,
+                  text: str,
+                  selector_type: Literal["css", "xpath"] = "xpath",
+                  simulate_human: bool = True,
+                  timeout: Optional[int] = None):
+        """
+        在输入框中输入文本（优化：模拟真人打字，反风控）
+
+        Args:
+            selector: 选择器
+            selector_type: 选择器类型（css/xpath）
+            text: 要输入的文本
+            simulate_human: 是否模拟真人打字（反风控）
+            timeout: 超时时间（毫秒）
+        """
+        try:
+            locator = self.wait_for_element(
+                selector=selector,
+                selector_type=selector_type,
+                condition="visible",
+                timeout=timeout
+            )
+            if not locator:
+                return
+
+            # 反风控：模拟真人打字（逐字符输入）
+            if simulate_human:
+                locator.type(
+                    text,
+                    delay=random.randint(*self.type_delay_range)
+                )
+            else:
+                locator.fill(text)  # 快速填充（测试用）
+
+            self.log.info(f"输入文本：{text[:50]}...")
+
+        except Exception as e:
+            self.log.error(f"输入文本失败：{e}", exc_info=False)
