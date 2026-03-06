@@ -1,4 +1,4 @@
-from playwright.sync_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
 from typing import Optional, Literal, Union
 import random
 
@@ -9,7 +9,7 @@ from app.core.config_manager import config
 ConditionType = Literal["visible", "hidden", "attached", "detached"]
 
 
-class ElementWaiter:
+class AsyncElementWaiter:
     def __init__(self, page: Page, timeout: int = 10000):
         """
         初始化等待元素
@@ -23,13 +23,13 @@ class ElementWaiter:
         self.click_delay_range = (50, 200)  # 点击延迟50-200ms
         self.type_delay_range = (50, 150)  # 打字延迟50-150ms
 
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("ElementWaiter")
+        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger(self.__class__.__name__)
 
-    def wait_for_element(self,
-                         selector: str,
-                         selector_type: Literal["css", "xpath"] = "xpath",
-                         condition: ConditionType = 'visible',
-                         timeout: Optional[int] = None) -> Optional[Locator]:
+    async def wait_for_element(self,
+                               selector: str,
+                               selector_type: Literal["css", "xpath"] = "xpath",
+                               condition: ConditionType = 'visible',
+                               timeout: Optional[int] = None) -> Optional[Locator]:
         """
         等待元素出现（优化：支持CSS/XPath，减少冗余，参数校验）
 
@@ -57,7 +57,7 @@ class ElementWaiter:
                 return None
 
             # 统一等待逻辑（减少冗余）
-            locator.wait_for(state=condition, timeout=timeout)
+            await locator.wait_for(state=condition, timeout=timeout)
 
             # detached状态返回None（避免误导）
             if condition == "detached":
@@ -75,10 +75,10 @@ class ElementWaiter:
             self.log.error(f"等待元素失败：{e}", exc_info=False)
             return None
 
-    def safe_click(self,
-                   selector: str,
-                   selector_type: Literal["css", "xpath"] = "xpath",
-                   timeout: Optional[int] = None):
+    async def safe_click(self,
+                         selector: str,
+                         selector_type: Literal["css", "xpath"] = "xpath",
+                         timeout: Optional[int] = None):
         """
         安全点击元素（优化：等待可点击，加随机延迟，反风控）
         :param selector: 选择器
@@ -86,7 +86,7 @@ class ElementWaiter:
         :param timeout:  超时时间(ms)
         """
         try:
-            locator = self.wait_for_element(
+            locator = await self.wait_for_element(
                 selector=selector,
                 selector_type=selector_type,
                 condition="visible",
@@ -96,7 +96,7 @@ class ElementWaiter:
                 return
 
             # 反风控：随机延迟点击，模拟真人
-            locator.click(
+            await locator.click(
                 delay=random.randint(*self.click_delay_range),
                 timeout=timeout or self.timeout
             )
@@ -107,10 +107,10 @@ class ElementWaiter:
         except Exception as e:
             self.log.error(f"点击元素失败：{e}", exc_info=False)
 
-    def clear_input_field(self,
-                          selector: str,
-                          selector_type: Literal["css", "xpath"] = "xpath",
-                          timeout: Optional[int] = None):
+    async def clear_input_field(self,
+                                selector: str,
+                                selector_type: Literal["css", "xpath"] = "xpath",
+                                timeout: Optional[int] = None):
         """
         清空输入框内容（优化：彻底清空，适配多平台）
 
@@ -120,7 +120,7 @@ class ElementWaiter:
             timeout: 超时时间（毫秒）
         """
         try:
-            locator = self.wait_for_element(
+            locator = await self.wait_for_element(
                 selector=selector,
                 selector_type=selector_type,
                 condition="visible",
@@ -130,18 +130,18 @@ class ElementWaiter:
                 return
 
             # 优化：先聚焦→选中全部→清空，适配知乎/小红书输入框
-            locator.focus()
-            self.page.keyboard.press("Control+A")  # 全选内容
-            self.page.keyboard.press("Backspace")  # 删除
-            locator.fill("")  # 兜底清空
+            await locator.focus()
+            await self.page.keyboard.press("Control+A")  # 全选内容
+            await self.page.keyboard.press("Backspace")  # 删除
+            await locator.fill("")  # 兜底清空
             self.log.info(f"清空输入框：{selector}")
 
         except Exception as e:
             self.log.error(f"清空输入框失败：{e}", exc_info=False)
 
-    def wait_for_url_change(self,
-                            old_url: str,
-                            timeout: Optional[int] = None) -> bool:
+    async def wait_for_url_change(self,
+                                  old_url: str,
+                                  timeout: Optional[int] = None) -> bool:
         """
         等待 URL 变化（最终修复版：解决参数未接收+JS注入风险）
 
@@ -157,7 +157,7 @@ class ElementWaiter:
                 timeout = self.timeout
 
             # 核心修复：JS函数显式接收args参数（[oldUrl]）
-            self.page.wait_for_function(
+            await self.page.wait_for_function(
                 # 箭头函数接收参数 → 避免JS注入 + 变量未定义
                 "([oldUrl]) => window.location.href !== oldUrl",
                 arg=[old_url],  # 传递参数到JS函数
@@ -172,11 +172,11 @@ class ElementWaiter:
             self.log.error(f"等待 URL 变化失败：{e}", exc_info=False)
             return False
 
-    def get_element_text(self,
-                         selector: str,
-                         selector_type: Literal["css", "xpath"] = "xpath",
-                         text_type: Literal["inner", "content"] = "inner",
-                         timeout: Optional[int] = None) -> Optional[str]:
+    async def get_element_text(self,
+                               selector: str,
+                               selector_type: Literal["css", "xpath"] = "xpath",
+                               text_type: Literal["inner", "content"] = "inner",
+                               timeout: Optional[int] = None) -> Optional[str]:
         """
         获取元素文本内容（优化：支持inner_text/text_content）
 
@@ -190,7 +190,7 @@ class ElementWaiter:
             元素文本内容或 None
         """
         try:
-            locator = self.wait_for_element(
+            locator = await self.wait_for_element(
                 selector=selector,
                 selector_type=selector_type,
                 condition="visible",
@@ -212,12 +212,12 @@ class ElementWaiter:
             self.log.error(f"获取元素文本失败：{e}", exc_info=False)
             return None
 
-    def type_text(self,
-                  selector: str,
-                  text: str,
-                  selector_type: Literal["css", "xpath"] = "xpath",
-                  simulate_human: bool = True,
-                  timeout: Optional[int] = None):
+    async def type_text(self,
+                        selector: str,
+                        text: str,
+                        selector_type: Literal["css", "xpath"] = "xpath",
+                        simulate_human: bool = True,
+                        timeout: Optional[int] = None):
         """
         在输入框中输入文本（优化：模拟真人打字，反风控）
 
@@ -229,7 +229,7 @@ class ElementWaiter:
             timeout: 超时时间（毫秒）
         """
         try:
-            locator = self.wait_for_element(
+            locator = await self.wait_for_element(
                 selector=selector,
                 selector_type=selector_type,
                 condition="visible",
@@ -240,12 +240,12 @@ class ElementWaiter:
 
             # 反风控：模拟真人打字（逐字符输入）
             if simulate_human:
-                locator.type(
+                await locator.type(
                     text,
                     delay=random.randint(*self.type_delay_range)
                 )
             else:
-                locator.fill(text)  # 快速填充（测试用）
+                await locator.fill(text)  # 快速填充（测试用）
 
             self.log.info(f"输入文本：{text[:50]}...")
 

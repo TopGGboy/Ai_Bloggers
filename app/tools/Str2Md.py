@@ -9,7 +9,6 @@ class Str2Md:
         try:
             with open(file_name, 'w', encoding='utf-8') as f:
                 f.write(str_content)
-            print(f"文本内容已保存到Markdown文件：{file_name}")
         except IOError as e:
             print(f"保存Markdown文件时发生错误：{e}")
         except Exception as e:

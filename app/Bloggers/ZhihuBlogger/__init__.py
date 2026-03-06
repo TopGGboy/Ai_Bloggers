@@ -1,3 +1,3 @@
-from .Control import Control
+from .Control import ZhihuAsyncControl
 
-__all__ = ["Control"]  # 只允许导出 Control
+__all__ = ["ZhihuAsyncControl"]  # 只允许导出 Control
