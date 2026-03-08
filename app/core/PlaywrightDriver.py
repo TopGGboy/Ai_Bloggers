@@ -19,7 +19,7 @@ class AsyncPlaywrightDriver:
     异步 Playwright 浏览器驱动类
     """
 
-    def __init__(self, user_data_dir: Optional[str] = None, is_mobile: bool = False):
+    def __init__(self, base_data_dir: Optional[str] = None, is_mobile: bool = False):
         """
         初始化异步 Playwright 驱动实例。
 
@@ -33,8 +33,10 @@ class AsyncPlaywrightDriver:
         self._contexts: List[BrowserContext] = []
         # 页面对象列表，用于管理所有打开的标签页
         self._pages: List[Page] = []
+        # 存储每个上下文对应的 storage state 文件路径
+        self._context_storage_paths: Dict[BrowserContext, str] = {}
 
-        self.user_data_dir = user_data_dir
+        self.base_data_dir = base_data_dir
         self.debugger_address = "127.0.0.1:9222"
         self.is_mobile = is_mobile
         # 随机选择的真实用户代理字符串，用于模拟不同浏览器/设备
@@ -42,28 +44,26 @@ class AsyncPlaywrightDriver:
         self.click_delay_range = (50, 200)
         self.type_delay_range = (50, 150)
 
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("AsyncPlaywrightDriver")
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            self.__class__.__name__)
 
     async def launch_browser(self, viewport_type: Literal["pc", "mobile"] = "pc") -> Tuple[
         Browser, BrowserContext, Page]:
         """
-        异步启动 Playwright 浏览器实例，并创建浏览器上下文和页面。
+        异步启动 Playwright 浏览器实例（普通模式，不带持久化）。
 
-        该方法根据传入的视图类型（PC 或移动端）配置浏览器视口，并自动应用反检测脚本、
-        路由拦截（屏蔽分析类请求）等增强功能。支持两种启动模式：
-        - 持久化模式：如果指定了 `user_data_dir`，则使用 `launch_persistent_context` 启动，
-          保留用户数据（如 Cookie、缓存）。
-        - 临时模式：否则正常启动浏览器，再新建独立上下文。
+        该方法启动一个临时的浏览器实例，真正的持久化由各平台的 Context 自己管理。
+        支持单 Browser + 多 Context 架构，每个平台有独立的 Cookie/缓存隔离。
 
         :param viewport_type: 视图类型，可选 'pc' 或 'mobile'，决定默认视口尺寸
                               - 'pc'   : 1920x1080
                               - 'mobile': 375x812
         :return: 包含三个元素的元组：
                  - browser    : Playwright 浏览器实例 (Browser)
-                 - context    : 浏览器上下文实例 (BrowserContext)，用于管理多个页面
+                 - context    : 临时上下文实例 (BrowserContext)，仅用于初始页面
                  - page       : 新创建的标签页实例 (Page)
         :raises PlaywrightTimeoutError: 浏览器启动超时
-        :raises Exception: 其他启动过程中的异常（如 Playwright 启动失败、上下文创建失败等）
+        :raises Exception: 其他启动过程中的异常
         """
         try:
             self._playwright = await async_playwright().start()
@@ -101,35 +101,20 @@ class AsyncPlaywrightDriver:
                 "permissions": ["geolocation"],  # 授予地理位置权限
             }
 
-            if self.user_data_dir:
-                # 启动持久化上下文（包含浏览器实例和上下文合一）
-                self._browser = await self._playwright.chromium.launch_persistent_context(
-                    user_data_dir=self.user_data_dir,
-                    **context_kwargs,
-                    **launch_kwargs,
-                )
-                self._contexts.append(self._browser)  # 对于持久化启动，browser 即上下文
-                self.log.info(f"✅ 启动带持久化数据的浏览器：{self.user_data_dir}")
-            else:
-                # 启动普通浏览器，再创建新的上下文
-                self._browser = await self._playwright.chromium.launch(**launch_kwargs)
-                context = await self._browser.new_context(**context_kwargs)
-                self._contexts.append(context)
-                self.log.info("✅ 启动普通临时浏览器")
+            # 普通启动浏览器，不使用持久化
+            self._browser = await self._playwright.chromium.launch(**launch_kwargs)
 
-            # 加载反检测脚本（隐藏自动化特征）
+            # 创建一个临时上下文用于初始化页面
+            temp_context = await self._browser.new_context(**context_kwargs)
+            self._contexts.append(temp_context)
+
+            self.log.info("✅ 启动普通浏览器（持久化由各平台 Context 自己管理）")
+
+            # 加载反检测脚本
             await self._load_anti_detection_script()
 
-            # 在新创建的上下文中新建一个页面
-            page = await self._contexts[-1].new_page()
+            return self._browser, temp_context, None
 
-            # 设置路由拦截：屏蔽常见的统计/追踪域名，其余正常继续
-            await page.route("**/*", lambda route: route.continue_() if not route.request.url.startswith(
-                ("https://analytics.", "https://track.")) else route.abort())
-
-            self._pages.append(page)
-
-            return self._browser, self._contexts[-1], page
 
         except PlaywrightTimeoutError as e:
             self.log.error(f"浏览器启动超时：{str(e)}")
@@ -145,44 +130,62 @@ class AsyncPlaywrightDriver:
                                       viewport_type: Literal["pc", "mobile"] = "pc",
                                       custom_ua: Optional[str] = None) -> BrowserContext:
         """
-        为特定平台创建独立的浏览器上下文（BrowserContext）。
+        为特定平台创建独立的持久化浏览器上下文（BrowserContext）。
 
-        该方法在已启动的浏览器实例（`self._browser`）上，为不同的平台（如知乎、小红书）创建
-        独立的上下文环境。每个上下文拥有独立的存储（cookies、缓存等）和配置（视口、用户代理、时区等），
-        并可加载反检测脚本以避免自动化特征被识别。
+        该方法在已启动的浏览器实例上，为不同平台创建独立的持久化上下文环境。
+        每个上下文拥有：
+        - 独立的 Cookie 存储
+        - 独立的 LocalStorage/SessionStorage
+        - 独立的缓存
+        - 独立的登录状态
 
-        **使用前提：** 必须先通过 `launch_browser` 启动浏览器实例，否则 `self._browser` 为 None 会引发异常。
+        **核心特性：** 使用 `storage_state` 实现持久化，而不是 `launch_persistent_context`
 
-        :param platform_name: 平台名称，仅用于日志标识，如 "zhihu"、"xiaohongshu"
-        :param user_data_dir: 该平台的数据持久化目录路径，用于保存 cookies 和本地存储等
-                              （注意：当前实现仅为日志记录，并未实际使用该目录创建持久化上下文，
-                              如需真正使用持久化，可改用 `browser.new_context` 的 `user_data_dir` 参数，
-                              或使用 `launch_persistent_context`。此处仅为占位或未来扩展。）
-        :param viewport_type: 视口类型，'pc'（1920x1080）或 'mobile'（375x812）
-        :param custom_ua: 自定义用户代理字符串，若不提供则从 `REAL_UA_LIST` 中随机选取
-        :return: 新创建的独立浏览器上下文实例（BrowserContext）
-        :raises Exception: 如果创建上下文失败（如浏览器未启动、参数错误等），将记录错误并抛出异常
+        :param platform_name: 平台名称，如 "zhihu"、"xiaohongshu"
+        :param user_data_dir: 该平台的持久化数据目录（绝对路径）
+        :param viewport_type: 视口类型，'pc' 或 'mobile'
+        :param custom_ua: 自定义用户代理字符串
+        :return: 新创建的持久化浏览器上下文实例
+        :raises Exception: 如果创建上下文失败
         """
         try:
+            # 确保平台数据目录存在
+            from pathlib import Path
+            platform_data_path = Path(user_data_dir)
+            platform_data_path.mkdir(parents=True, exist_ok=True)
+
+            # 定义 storage state 文件路径
+            storage_state_file = platform_data_path / "storage_state.json"
+
             viewport_config = {"width": 1920, "height": 1080} if viewport_type == "pc" else {"width": 375,
                                                                                              "height": 812}
             context_kwargs = {
                 "viewport": viewport_config,
                 "user_agent": custom_ua or random.choice(REAL_UA_LIST),
-                "bypass_csp": True,  # 绕过内容安全策略
+                "bypass_csp": True,
                 "locale": "zh-CN",
                 "timezone_id": "Asia/Shanghai",
-                "geolocation": {"latitude": 31.2304, "longitude": 121.4737},  # 上海坐标
-                "permissions": ["geolocation"],  # 授予地理位置权限
+                "geolocation": {"latitude": 31.2304, "longitude": 121.4737},
+                "permissions": ["geolocation"],
             }
 
-            # 为每个平台创建独立 Context
+            # 如果 storage state 文件存在，加载它以实现持久化
+            if storage_state_file.exists():
+                context_kwargs["storage_state"] = str(storage_state_file)
+                self.log.info(f"📂 加载平台 {platform_name} 的持久化状态：{storage_state_file}")
+            else:
+                self.log.info(f"🆕 创建平台 {platform_name} 的新上下文（首次使用）")
+
+            # 为此平台创建新的上下文
             context = await self._browser.new_context(**context_kwargs)
-            # 为此上下文加载反检测脚本（如隐藏 webdriver 特征）
+
+            # 保存 storage state 文件路径
+            self._context_storage_paths[context] = str(storage_state_file)
+
+            # 加载反检测脚本
             await self._load_anti_detection_script_for_context(context)
 
             self._contexts.append(context)
-            self.log.info(f"✅ 为 {platform_name} 创建独立 Context: {user_data_dir}")
 
             return context
 
@@ -226,17 +229,74 @@ class AsyncPlaywrightDriver:
 
     async def quit(self):
         try:
+            self.log.info("开始关闭浏览器资源...")
+
+            # 1. 先保存每个上下文的 storage state
+            self.log.info(f"正在保存 {len(self._contexts)} 个上下文的 storage state...")
+            save_tasks = []
+            for i, context in enumerate(self._contexts):
+                try:
+                    storage_state_path = self._context_storage_paths.get(context)
+                    if storage_state_path:
+                        self.log.info(f"💾 保存上下文 {i} 的 storage state 到：{storage_state_path}")
+                        save_tasks.append(context.storage_state(path=storage_state_path))
+                    else:
+                        self.log.warning(f"上下文 {i} 没有对应的 storage state 文件路径")
+                except Exception as e:
+                    self.log.warning(f"准备保存上下文 {i} 失败：{str(e)}")
+
+            # 并发保存所有 storage state
+            if save_tasks:
+                try:
+                    await asyncio.gather(*save_tasks, return_exceptions=True)
+                    self.log.info("✅ 所有 storage state 已保存")
+                except Exception as e:
+                    self.log.warning(f"保存 storage state 异常：{str(e)}")
+
+            # 2. 关闭所有页面（带超时）
+            self.log.info(f"正在关闭 {len(self._pages)} 个页面...")
             for page in self._pages:
-                await page.close()
+                try:
+                    await asyncio.wait_for(page.close(), timeout=5.0)
+                except Exception as e:
+                    self.log.warning(f"关闭页面失败：{str(e)}")
+
+            # 3. 关闭所有上下文（带超时）
+            self.log.info(f"正在关闭 {len(self._contexts)} 个上下文...")
             for context in self._contexts:
-                await context.close()
+                try:
+                    await asyncio.wait_for(context.close(), timeout=5.0)
+                except Exception as e:
+                    self.log.warning(f"关闭上下文失败：{str(e)}")
+
+            # 4. 关闭浏览器（带超时）
             if self._browser:
-                await self._browser.close()
+                self.log.info("正在关闭浏览器...")
+                try:
+                    await asyncio.wait_for(self._browser.close(), timeout=10.0)
+                    self.log.info("✅ 浏览器已关闭")
+                except Exception as e:
+                    self.log.warning(f"关闭浏览器失败：{str(e)}")
+
+            # 5. 停止 playwright（带超时）
             if self._playwright:
-                await self._playwright.stop()
-            self.log.info("浏览器资源已释放")
+                self.log.info("正在停止 playwright...")
+                try:
+                    await asyncio.wait_for(self._playwright.stop(), timeout=5.0)
+                    self.log.info("✅ playwright 已停止")
+                except Exception as e:
+                    self.log.warning(f"停止 playwright 失败：{str(e)}")
+
+            # 6. 清理引用，帮助垃圾回收
+            self._pages.clear()
+            self._contexts.clear()
+            self._context_storage_paths.clear()
+            self._browser = None
+            self._playwright = None
+
+            self.log.info("✅ 所有浏览器资源已释放")
         except Exception as e:
-            self.log.warning(f"关闭浏览器异常：{str(e)}", exc_info=False)
+            self.log.warning(f"关闭浏览器异常：{str(e)}", exc_info=True)
 
     async def __aenter__(self):
         return self

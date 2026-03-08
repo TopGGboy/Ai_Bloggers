@@ -17,7 +17,8 @@ class AsyncGetHot:
         self.page = page
         self.url = r"https://www.zhihu.com/hot"
         self.waiter = AsyncElementWaiter(self.page)
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("AsyncGetHot")
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            self.__class__.__name__)
         self.logging = logging
 
     async def get_hot_title_list(self, begin, end):

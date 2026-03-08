@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import Any, Dict, List, Tuple
+import asyncio
 
 from app.core.MCP.ToolRegistry import create_tool_registry
 from app.core.AiAgent import LLM
@@ -145,4 +146,84 @@ class MCPIntegration:
             current_messages.extend(tool_results)
 
         # 达到最大迭代次数
+        return current_messages[-1].get("content", "达到最大迭代次数"), current_messages
+
+    async def chat_with_tools_async(self,
+                                    client: Any,
+                                    model: str,
+                                    user_prompt: str,
+                                    system_prompt: str = "You are a helpful assistant with access to tools.",
+                                    max_iterations: int = 50,
+                                    temperature: float = 0.7) -> Tuple[str, List[Dict]]:
+        """
+        异步版本：与大模型进行对话，自动处理工具调用
+
+        Args:
+            client: 大模型客户端（必须是 AsyncOpenAI）
+            model: 模型名称
+            user_prompt: 用户问题
+            system_prompt: 系统提示词
+            max_iterations: 最大迭代次数
+            temperature: 温度参数
+
+        Returns:
+            包含最终回复和完整消息历史的元组
+        """
+        if self.tools is None or self.tool_functions is None:
+            self.client = client
+            self.model = model
+            self._initialize_tools()
+
+        current_messages = []
+        llm_instance = LLM()
+
+        for iteration in range(max_iterations):
+            # 异步调用 LLM
+            content, current_messages = await llm_instance.get_response_from_llm_async(
+                user_prompt=user_prompt if iteration == 0 else None,
+                client=client,
+                model=model,
+                system_prompt=system_prompt,
+                msg_history=current_messages,
+                tools=self.tools,
+                temperature=temperature
+            )
+
+            last_message = current_messages[-1]
+            if "tool_calls" not in last_message or not last_message["tool_calls"]:
+                return content, current_messages
+
+            # 【关键修改】异步执行工具
+            tool_results = []
+            for tool_call in last_message["tool_calls"]:
+                tool_name = tool_call.function.name
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    arguments = {}
+
+                # 检查工具函数是否是异步的
+                tool_func = self.tool_functions.get(tool_name)
+                if tool_func and asyncio.iscoroutinefunction(tool_func):
+                    # 异步工具
+                    tool_result = await tool_func(**arguments)
+                else:
+                    # 同步工具（在后台线程中执行，避免阻塞）
+                    import concurrent.futures
+                    loop = asyncio.get_event_loop()
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        tool_result = await loop.run_in_executor(
+                            executor,
+                            lambda: tool_func(**arguments) if tool_func else f"未知的工具：{tool_name}"
+                        )
+
+                tool_results.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": str(tool_result),
+                    "name": tool_name
+                })
+
+            current_messages.extend(tool_results)
+
         return current_messages[-1].get("content", "达到最大迭代次数"), current_messages

@@ -14,7 +14,8 @@ class AsyncLogin:
         self.page = page
         self.url = 'https://www.zhihu.com/signin?next=%2F'
         self.waiter = AsyncElementWaiter(page=page)
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger(self.__class__.__name__)
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            self.__class__.__name__)
         self.login_in = False
         self.image = None
 
@@ -93,6 +94,22 @@ class AsyncLogin:
             if await self.waiter.wait_for_url_change(self.url, timeout=60000):
                 print("登录成功")
                 self.log.info("登录成功")
+
+                # 登录成功后立即保存 storage state
+                try:
+                    # 获取页面的上下文
+                    context = self.page.context
+                    # 构建 storage state 文件路径
+                    import os
+                    storage_state_file = os.path.join(
+                        r"D:\pythonproject\Ai_Blogger\driver\playwright_data\zhihu_data",
+                        "storage_state.json"
+                    )
+                    # 保存 storage state
+                    await context.storage_state(path=storage_state_file)
+                    self.log.info(f"✅ 登录成功后保存 storage state 到：{storage_state_file}")
+                except Exception as e:
+                    self.log.warning(f"保存 storage state 失败：{str(e)}")
             else:
                 print("登录失败：超时未跳转")
                 self.log.error("登录失败：超时未跳转")

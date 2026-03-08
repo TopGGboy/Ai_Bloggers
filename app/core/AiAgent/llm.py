@@ -15,7 +15,8 @@ ALL_MODELS = [
 class LLM:
     def __init__(self):
         # 使用 YAML 配置的日志路径
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("LLM")
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            self.__class__.__name__)
 
     def create_client(self, model: str):
         """
@@ -44,6 +45,34 @@ class LLM:
 
             # 创建 DeepSeek 客户端
             client = openai.OpenAI(
+                api_key=api_key,
+                base_url=deepseek_config.get('base_url', 'https://api.deepseek.com')
+            )
+
+            return client
+
+    def create_async_client(self, model: str):
+        """
+        创建异步客户端
+
+        Args:
+            model (str): 大模型名称
+
+        Returns:
+            异步大模型客户端对象
+        """
+        if "deepseek" in model:
+            deepseek_config = config.get_deepseek_config()
+            api_key = deepseek_config.get('api_key', '')
+
+            if not api_key or api_key == "<KEY>":
+                self.log.error("DeepSeek API 密钥未配置")
+                raise ValueError("请在配置文件中设置有效的 DeepSeek API 密钥")
+
+            self.log.info(f"使用的异步模型：{model}")
+
+            # 【关键修改】使用 AsyncOpenAI 客户端
+            client = openai.AsyncOpenAI(
                 api_key=api_key,
                 base_url=deepseek_config.get('base_url', 'https://api.deepseek.com')
             )
@@ -127,6 +156,60 @@ class LLM:
 
         except Exception as e:
             self.log.error(f"调用大模型API时出错：{e}")
+            raise e
+
+        return content, new_msg_history
+
+    async def get_response_from_llm_async(
+            self,
+            user_prompt: str | None,
+            client: Any,
+            model: str,
+            system_prompt: str,
+            print_debug: bool = False,
+            msg_history: list[dict[str, Any]] | None = None,
+            temperature: float = 0.7,
+            tools: list[dict] | None = None,
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """
+        异步版本：调用大模型 API 获取响应内容
+        """
+        content = None
+        msg = user_prompt
+        if msg_history is None:
+            msg_history = []
+
+        if msg and msg.strip():
+            new_msg_history = msg_history + [{"role": "user", "content": msg}]
+        else:
+            new_msg_history = msg_history
+
+        try:
+            if "deepseek" in model:
+                api_params = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        *new_msg_history,
+                    ],
+                    "temperature": temperature,
+                    "max_tokens": MAX_NUM_TOKENS,
+                    "n": 1,
+                }
+
+                if tools:
+                    api_params["tools"] = tools
+
+                # 【关键修改】使用异步 API 调用
+                response = await client.chat.completions.create(**api_params)
+                content = response.choices[0].message.content
+                new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+
+                if hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
+                    new_msg_history[-1]["tool_calls"] = response.choices[0].message.tool_calls
+
+        except Exception as e:
+            self.log.error(f"调用大模型 API 时出错：{e}")
             raise e
 
         return content, new_msg_history

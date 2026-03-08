@@ -1,4 +1,4 @@
-from app.core.AiAgent.IntertSearch import internet_search
+from app.core.AiAgent.IntertSearch import internet_search, internet_search_async
 from app.core.AiAgent.llm import LLM
 
 SYSTEM_PROMPT = """
@@ -138,6 +138,39 @@ class InternetData:
 
         except Exception as e:
             return {"success": False, "message": f"操作失败: {str(e)}", "content": ""}
+
+    async def get_internet_data_async(self, query):
+        """
+        获取互联网数据（异步版本）
+
+        Args:
+            query (str): 查询关键词
+
+        Returns:
+            dict: 包含整理后的内容及状态信息
+        """
+        try:
+            internet_data = await internet_search_async(query)
+            if not internet_data:
+                return {"success": False, "message": "未找到相关数据", "content": ""}
+
+            internet_data = self.__parse_internet_data(internet_data)
+            if not internet_data:
+                return {"success": False, "message": "数据解析失败", "content": ""}
+
+            # 【关键修改】使用异步方法
+            content, new_msg_history = await self.llm.get_response_from_llm_async(
+                user_prompt=internet_data,
+                client=self.client,
+                model=self.model_name,
+                system_prompt=SYSTEM_PROMPT,
+                temperature=0.7
+            )
+
+            return {"success": True, "message": "操作成功", "content": content}
+
+        except Exception as e:
+            return {"success": False, "message": f"操作失败：{str(e)}", "content": ""}
 
     def __parse_internet_data(self, internet_data: list[dict], max_articles: int = 3):
         """

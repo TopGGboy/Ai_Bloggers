@@ -4,6 +4,9 @@ import logging
 from typing import Dict, Any, Optional
 import asyncio
 
+from app.core.config_manager import config
+from app.tools.LoggingConfig import LoggingConfig
+
 
 class BasePlatform(ABC):
     """
@@ -27,7 +30,8 @@ class BasePlatform(ABC):
         self.page: Optional[Page] = None
         self.md_path = md_path
         self.platform_name = self.__class__.__name__
-        self.log = logging.getLogger(f"{self.platform_name}.Control")
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            f"{self.platform_name}.Control")
 
     @abstractmethod
     async def init(self) -> None:

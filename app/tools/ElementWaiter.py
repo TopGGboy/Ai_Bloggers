@@ -23,7 +23,8 @@ class AsyncElementWaiter:
         self.click_delay_range = (50, 200)  # 点击延迟50-200ms
         self.type_delay_range = (50, 150)  # 打字延迟50-150ms
 
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger(self.__class__.__name__)
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            self.__class__.__name__)
 
     async def wait_for_element(self,
                                selector: str,

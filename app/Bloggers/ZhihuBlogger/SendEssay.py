@@ -17,7 +17,8 @@ class AsyncSendEssay:
         self.page = page
         self.url = r'https://www.zhihu.com/hot'
         self.waiter = AsyncElementWaiter(page=self.page)
-        self.log = LoggingConfig(log_file_path=config.logfile_path).get_logger("AsyncSendEssay")
+        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
+            self.__class__.__name__)
         self.update = False
         self.upload_files = UploadFiles()
 

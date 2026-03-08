@@ -5,7 +5,7 @@
 
 from typing import Dict, Callable, Any
 from app.core.MCP.maps import ALL_TOOLS
-from app.core.MCP.tools import InternetData
+from app.core.MCP.tools.InternetData import InternetData
 
 
 class ToolRegistry:
@@ -28,7 +28,8 @@ class ToolRegistry:
 
         # 注册工具函数
         self.tool_functions.update({
-            "get_internet_data": internet_search.get_internet_data,
+            "get_internet_data": internet_search.get_internet_data_async,
+            # "get_internet_data_async": internet_search.get_internet_data_async
         })
 
     def get_tools(self):
