@@ -18,7 +18,7 @@ class BasePlatform(ABC):
     3. 支持异步操作
     """
 
-    def __init__(self, context: BrowserContext, md_path: str):
+    def __init__(self, context: BrowserContext, md_path: str, mode: str = None, user_data_dir: str = None):
         """
         初始化平台
 
@@ -26,6 +26,7 @@ class BasePlatform(ABC):
             context: 独立的浏览器上下文（每个平台一个）
             md_path: Markdown 文件存储路径
         """
+        self.user_data_dir = user_data_dir
         self.context = context
         self.page: Optional[Page] = None
         self.md_path = md_path
@@ -34,10 +35,12 @@ class BasePlatform(ABC):
             f"{self.platform_name}.Control")
 
     @abstractmethod
-    async def init(self) -> None:
+    async def run(self, check_interval: int = 600) -> None:
         """
-        初始化平台（登录、加载主页等）
-        子类必须实现
+        平台主运行方法 - 根据模式执行不同的逻辑
+
+        :param check_interval: 监控循环间隔（秒），默认 600 秒
+        :return:
         """
         pass
 

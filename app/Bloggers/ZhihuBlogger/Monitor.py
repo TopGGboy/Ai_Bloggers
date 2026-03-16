@@ -42,8 +42,8 @@ class ZhihuMonitor:
             self.page = await self.context.new_page()
 
             # 初始化获取热榜组件
-            from app.Bloggers.ZhihuBlogger.GetHot import AsyncGetHot
-            self.Zhihu_GetHot = AsyncGetHot(page=self.page, logging=True)
+            from app.Bloggers.ZhihuBlogger.GetHot import AsyncZhihuGetHot
+            self.Zhihu_GetHot = AsyncZhihuGetHot(page=self.page, logging=True)
 
             self.log.info("知乎监控器初始化成功")
 
@@ -59,8 +59,8 @@ class ZhihuMonitor:
                 raise ValueError("page 必须在使用前初始化")
 
             # 初始化获取热榜组件
-            from app.Bloggers.ZhihuBlogger.GetHot import AsyncGetHot
-            self.Zhihu_GetHot = AsyncGetHot(page=self.page, logging=True)
+            from app.Bloggers.ZhihuBlogger.GetHot import AsyncZhihuGetHot
+            self.Zhihu_GetHot = AsyncZhihuGetHot(page=self.page, logging=True)
 
             self.log.info("知乎监控器初始化成功")
 
@@ -222,7 +222,6 @@ class ZhihuMonitor:
 
                 # 触发回调
                 if self.on_change_callback:
-                    # 【关键修改】创建任务后立即返回
                     task = asyncio.create_task(self.on_change_callback(new_title_list[0]))
                     self.log.debug(f"已创建任务处理变化：{new_title_list[0]['title']}")
 

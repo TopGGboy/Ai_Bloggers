@@ -38,31 +38,6 @@ class ZhihuPublisher:
             "publish": 2,
         }
 
-    async def init(self) -> None:
-        """初始化发布器（登录、加载组件）"""
-        try:
-            # 创建新页面
-            self.page = await self.context.new_page()
-
-            # 初始化组件
-            from app.Bloggers.ZhihuBlogger.Login import AsyncLogin
-            from app.Bloggers.ZhihuBlogger.SendEssay import AsyncSendEssay
-            from app.Bloggers.ZhihuBlogger.WriteText import WriteZhihuText
-
-            self.Zhihu_Login = AsyncLogin(page=self.page)
-            self.Zhihu_SendEssay = AsyncSendEssay(page=self.page)
-            self.Zhihu_WriteText = WriteZhihuText(model_name="deepseek-chat")
-            self.str_2_md = Str2Md()
-
-            # 执行登录
-            await self.Zhihu_Login.run()
-
-            self.log.info("知乎发布器初始化成功")
-
-        except Exception as e:
-            self.log.error(f"知乎发布器初始化失败：{e}", exc_info=True)
-            raise
-
     async def init_without_new_page(self) -> None:
         """初始化发布器（不创建新 page，使用已有的 page）"""
         try:
@@ -84,9 +59,9 @@ class ZhihuPublisher:
             self.log.error(f"知乎发布器初始化失败：{e}", exc_info=True)
             raise
 
-    async def publish_content(self, content: Dict[str, Any], url: str = None) -> bool:
+    async def publish_answer(self, content: Dict[str, Any], url: str = None) -> bool:
         """
-        发布内容到知乎
+        发布回答到知乎
 
         Args:
             url: 目标问题的链接
@@ -103,14 +78,13 @@ class ZhihuPublisher:
             # 从 content 中提取数据
             title = content.get('title', '')
             text_content = content.get('content', '')
-            images = content.get('images', [])
 
             # 保存为 Markdown 文件
             sanitized_title = self._sanitize_filename(title)
             file_name = os.path.join(self.md_path, f"{sanitized_title}.md")
             self.str_2_md.save_2_md(text_content, file_name=file_name)
 
-            await self.Zhihu_SendEssay.run(href=url, file_path=file_name)
+            await self.Zhihu_SendEssay.login()
 
             self.log.info(f"内容发布成功：{title}")
             return True
@@ -131,8 +105,8 @@ class ZhihuPublisher:
         """
         try:
             # 初始化 GetHot 组件（临时使用）
-            from app.Bloggers.ZhihuBlogger.GetHot import AsyncGetHot
-            zhihu_get_hot = AsyncGetHot(page=self.page, logging=True)
+            from app.Bloggers.ZhihuBlogger.GetHot import AsyncZhihuGetHot
+            zhihu_get_hot = AsyncZhihuGetHot(page=self.page, logging=True)
 
             # 获取热榜内容
             self.log.info(f"📖 正在获取内容：{hot_title['title']}")
@@ -148,15 +122,15 @@ class ZhihuPublisher:
 
             # 使用标题生成安全的文件名
             sanitized_title = self._sanitize_filename(hot_title['title'])
-            file_name = os.path.join(self.md_path, f"{sanitized_title}.md")
+            file_path = os.path.join(self.md_path, f"{sanitized_title}.md")
 
             # 保存 Markdown 文件
-            self.str_2_md.save_2_md(hot_text, file_name=file_name)
-            self.log.info(f"文章已保存至：{file_name}")
+            self.str_2_md.save_2_md(hot_text, file_name=file_path)
+            self.log.info(f"文章已保存至：{file_path}")
 
             # 【关键】在主发布页面上执行发布操作
             self.log.info("📤 正在发布文章...")
-            await self.Zhihu_SendEssay.run(hot_title['href'], file_name)
+            await self.Zhihu_SendEssay.send_essay(href=hot_title['href'], file_path=file_path)
 
             self.log.info(f"✅ 文章发布成功：{hot_title['title']}")
             return True

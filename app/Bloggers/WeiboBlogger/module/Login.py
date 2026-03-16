@@ -1,20 +1,19 @@
 from io import BytesIO
 from PIL import Image
 import asyncio
+import re
 
 from playwright.async_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
-from app.tools.ElementWaiter import AsyncElementWaiter
-from app.core.config_manager import config
-from app.tools.LoggingConfig import LoggingConfig
 from app.Bloggers.BaseLogin import BaseLogin
+from app.tools.ElementWaiter import AsyncElementWaiter
 
 
-class AsyncZhihuLogin(BaseLogin):
-    def __init__(self, page: Page, user_data_dir: str = None):
+class AsyncWeiboLogin(BaseLogin):
+    def __init__(self, page: Page, user_data_dir: str):
         """初始化异步登录类"""
         super().__init__(page, user_data_dir)
-        self.url = 'https://www.zhihu.com/signin?next=%2F'
-        self.waiter = AsyncElementWaiter(page=self.page)
+        self.url = "https://passport.weibo.com/sso/signin"
+        self.waiter = AsyncElementWaiter(page=page)
         self.login_in = False
         self.image = None
 
@@ -25,7 +24,7 @@ class AsyncZhihuLogin(BaseLogin):
             self.log.info("已经登录成功")
             return
 
-        self.__show_menu()
+        self._show_menu()
         choice = self.__get_user_choice()
         if choice == 0:
             print("退出程序")
@@ -34,9 +33,9 @@ class AsyncZhihuLogin(BaseLogin):
 
         await self.__execute_login(choice)
 
-    def __show_menu(self):
+    def _show_menu(self):
         """显示登录方式菜单"""
-        print("欢迎使用 知乎 Logger")
+        print("欢迎使用 微博 Logger")
         print("1. 扫码登录")
         print("2. 账号密码登录")
         print("0. 退出程序")
@@ -71,24 +70,29 @@ class AsyncZhihuLogin(BaseLogin):
         """检查是否已登录"""
         return self.page.url != self.url
 
-    async def _login_by_username_and_password(self, username, password):
+    async def _login_by_username_and_password(self, username: str = None, password: str = None):
         """账号密码登录"""
         try:
-            await self.waiter.safe_click(selector='//div[@class="SignFlow-tab" and @role="button"]',
-                                         selector_type="xpath")
-            self.log.info("正在使用账号密码登录...")
+            # 切换到账号密码登录
+            await self.waiter.safe_click_locator(
+                self.page.get_by_role("link", name="账号登录")
+            )
 
-            username_input = await self.waiter.wait_for_element('input[name="username"]', selector_type="css")
-            password_input = await self.waiter.wait_for_element('input[name="password"]', selector_type="css")
+            # 填充用户名
+            username_field = self.page.get_by_placeholder("手机号或邮箱")
+            await self.waiter.safe_fill_locator(username_field, username)
 
-            await self.waiter.clear_input_field('input[name="username"]', selector_type="css")
-            await self.waiter.clear_input_field('input[name="password"]', selector_type="css")
+            # 填充密码
+            password_field = self.page.get_by_placeholder("密码")
 
-            await username_input.fill(username)
-            await password_input.fill(password)
+            await self.waiter.safe_fill_locator(password_field, password)
+
             self.log.info("账号密码已输入")
 
-            await self.waiter.safe_click('//button[contains(@class, "SignFlow-submitButton")]')
+            # 点击登录按钮
+            login_button = self.page.get_by_role("button", name="登录")
+
+            await self.waiter.safe_click_locator(login_button)
 
             if await self.waiter.wait_for_url_change(self.url, timeout=60000):
                 print("登录成功")
@@ -101,7 +105,7 @@ class AsyncZhihuLogin(BaseLogin):
                     # 构建 storage state 文件路径
                     import os
                     storage_state_file = os.path.join(
-                        rf"{self.user_data_dir}",
+                        fr"{self.user_data_dir}",
                         "storage_state.json"
                     )
                     # 保存 storage state
@@ -118,21 +122,43 @@ class AsyncZhihuLogin(BaseLogin):
             self.log.error(f"账号密码登录失败：{e}")
 
     async def _login_by_qrcode(self):
-        """扫码登录"""
+        """扫码登陆"""
         try:
-            qr_code_element = await self.waiter.wait_for_element('.Qrcode-qrcode', selector_type="css")
-            qr_image = await self.__capture_qr_code(qr_code_element)
+            qr_locator = self.page.locator("div").filter(
+                has_text=re.compile(r"^扫描二维码登录打开微博手机APP - 我的页面 - 扫一扫$")).locator(
+                "img")
+
+            await self.waiter.wait_for_locator(qr_locator, condition="visible", timeout=10000)
+            qr_image = await self.__capture_qr_code(qr_locator)
             self.image = qr_image
             self.__show_qr_code()
-            print("请打开手机应用扫描二维码登录")
+            self.log.info("请打开手机应用扫描二维码登录")
 
             if await self.waiter.wait_for_url_change(self.url, timeout=60000):
+                print("登录成功")
                 self.log.info("登录成功")
+
+                # 登录成功后立即保存 storage state
+                try:
+                    # 获取页面的上下文
+                    context = self.page.context
+                    # 构建 storage state 文件路径
+                    import os
+                    storage_state_file = os.path.join(
+                        fr"{self.user_data_dir}",
+                        "storage_state.json"
+                    )
+                    # 保存 storage state
+                    await context.storage_state(path=storage_state_file)
+                    self.log.info(f"✅ 登录成功后保存 storage state 到：{storage_state_file}")
+                except Exception as e:
+                    self.log.warning(f"保存 storage state 失败：{str(e)}")
             else:
+                print("登录失败：超时未跳转")
                 self.log.error("登录失败：超时未跳转")
 
         except Exception as e:
-            self.log.error(f"二维码登录失败：{e}")
+            self.log.error(f"二维码码登录失败：{e}")
 
     async def __capture_qr_code(self, element: Locator):
         """截取二维码"""
@@ -162,17 +188,18 @@ class AsyncZhihuLogin(BaseLogin):
             self.log.error(f"显示二维码图片失败：{e}")
 
 
-async def test_zhihu_login():
+async def test_weibo_login():
     from app.core.PlaywrightDriver import AsyncPlaywrightDriver
 
-    USER_DATA_DIR = r"D:\pythonproject\Ai_Blogger\driver\playwright_data"
+    USER_DATA_DIR = r"/driver/playwright_data"
 
-    async with AsyncPlaywrightDriver(user_data_dir=USER_DATA_DIR) as driver:
-        browser, context, page = await driver.launch_browser(viewport_type="pc")
+    async with AsyncPlaywrightDriver(base_data_dir=USER_DATA_DIR) as driver:
+        browser, context, _ = await driver.launch_browser(viewport_type="pc")
+        page = await context.new_page()
 
-        login = AsyncZhihuLogin(page=page)
+        login = AsyncWeiboLogin(page=page, user_data_dir=f"{USER_DATA_DIR}/weibo_data")
         await login.login()
 
 
 if __name__ == '__main__':
-    asyncio.run(test_zhihu_login())
+    asyncio.run(test_weibo_login())

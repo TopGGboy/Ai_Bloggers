@@ -76,6 +76,88 @@ class AsyncElementWaiter:
             self.log.error(f"等待元素失败：{e}", exc_info=False)
             return None
 
+    async def wait_for_locator(self, locator: Locator, condition: ConditionType = 'visible',
+                               timeout: Optional[int] = None) -> Optional[Locator]:
+        """
+        等待 Locator 满足条件（新增：支持 Playwright 原生定位器）
+
+        :param locator: Playwright Locator 对象
+        :param condition: 等待条件
+        :param timeout: 超时时间 (ms)
+        :return: Locator 对象或 None
+        """
+        if timeout is None:
+            timeout = self.timeout
+
+        try:
+            await locator.wait_for(state=condition, timeout=timeout)
+
+            if condition == "detached":
+                self.log.info(f"元素已移除 DOM")
+                return None
+
+            self.log.info(f"元素满足条件 {condition}")
+            return locator
+
+        except PlaywrightTimeoutError:
+            self.log.warning(f"等待元素超时（{condition}）")
+            return None
+        except Exception as e:
+            self.log.error(f"等待元素失败：{e}", exc_info=False)
+            return None
+
+    async def safe_click_locator(self, locator: Locator, timeout: Optional[int] = None):
+        """
+        安全点击 Locator（新增：直接操作 Locator 对象）
+
+        :param locator: Playwright Locator 对象
+        :param timeout: 超时时间 (ms)
+        """
+        try:
+            target = await self.wait_for_locator(
+                locator=locator,
+                condition="visible",
+                timeout=timeout
+            )
+            if not target:
+                return
+
+            await target.click(
+                delay=random.randint(*self.click_delay_range),
+                timeout=timeout or self.timeout
+            )
+            self.log.info(f"安全点击元素")
+
+        except PlaywrightTimeoutError:
+            self.log.warning(f"点击元素超时")
+        except Exception as e:
+            self.log.error(f"点击元素失败：{e}", exc_info=False)
+
+    async def safe_fill_locator(self, locator: Locator, text: str, timeout: Optional[int] = None):
+        """
+        安全填充输入框（新增：直接操作 Locator 对象）
+
+        :param locator: Playwright Locator 对象
+        :param text: 要填充的文本
+        :param timeout: 超时时间 (ms)
+        """
+        try:
+            target = await self.wait_for_locator(
+                locator=locator,
+                condition="visible",
+                timeout=timeout
+            )
+            if not target:
+                return
+
+            await target.fill(text, timeout=timeout or self.timeout)
+            self.log.info(f"填充输入框：{text[:50]}...")
+
+        except PlaywrightTimeoutError:
+            self.log.warning(f"填充输入框超时")
+        except Exception as e:
+            self.log.error(f"填充输入框失败：{e}", exc_info=False)
+
     async def safe_click(self,
                          selector: str,
                          selector_type: Literal["css", "xpath"] = "xpath",

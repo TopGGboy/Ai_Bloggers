@@ -7,7 +7,7 @@ from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 
 
-class AsyncGetHot:
+class AsyncZhihuGetHot:
     def __init__(self, page: Page, logging=False):
         """
         异步版本：获取知乎热榜信息
@@ -121,7 +121,7 @@ async def test_zhihu_hot_fetcher():
     async with AsyncPlaywrightDriver(user_data_dir=USER_DATA_DIR) as driver:
         browser, context, page = await driver.launch_browser(viewport_type="pc")
 
-        get_hot = AsyncGetHot(page, logging=True)
+        get_hot = AsyncZhihuGetHot(page, logging=True)
 
         """
         思路：

@@ -3,24 +3,21 @@ import asyncio
 from playwright.async_api import Page, Locator
 from app.tools.ElementWaiter import AsyncElementWaiter
 from app.tools.LoggingConfig import LoggingConfig
-from app.Bloggers.ZhihuBlogger.UploadFiles import UploadFiles
 from app.core.config_manager import config
+from app.Bloggers.BaseSendEssay import BaseSendEssay
 
 
-class AsyncSendEssay:
+class AsyncZhihuSendEssay(BaseSendEssay):
     def __init__(self, page: Page):
         """
         异步版本：知乎回答机器人
 
         :param page: Playwright Page 实例
         """
-        self.page = page
+        super().__init__(page=page)
         self.url = r'https://www.zhihu.com/hot'
         self.waiter = AsyncElementWaiter(page=self.page)
-        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
-            self.__class__.__name__)
         self.update = False
-        self.upload_files = UploadFiles()
 
     async def __to_hot_item(self, href):
         """导航到指定热榜条目的详情页面"""
@@ -107,7 +104,7 @@ class AsyncSendEssay:
             print(f"回答提交失败：{e}")
             self.log.error(f"回答提交失败：{e}")
 
-    async def run(self, href: str, file_path: str):
+    async def send_essay(self, href: str, file_path: str):
         """
         执行完整的回答流程：
         1. 进入指定热榜条目
@@ -137,8 +134,8 @@ async def test_zhihu_answer_bot():
         browser, context, page = await driver.launch_browser(viewport_type="pc")
 
         sendessay = AsyncSendEssay(page)
-        await sendessay.run(href="https://www.zhihu.com/question/2011788981294081499",
-                            file_path=r"D:\pythonproject\Ai_Blogger\Md\example_1.md")
+        await sendessay.send_essay(href="https://www.zhihu.com/question/2011788981294081499",
+                                   file_path=r"D:\pythonproject\Ai_Blogger\Md\example_1.md")
 
 
 if __name__ == '__main__':
