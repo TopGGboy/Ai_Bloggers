@@ -794,7 +794,7 @@ if __name__ == '__main__':
                 platform_name='zhihu',
                 platform_class=ZhihuAsyncControl,
                 user_data_dir='zhihu_data',
-                mode=PLATFORM_MODE_MONITOR_ONLY,  # 新增参数
+                mode=PLATFORM_MODE_MONITOR_AND_PUBLISH,  # 新增参数
                 save_config=True
             )
             await check_exit()

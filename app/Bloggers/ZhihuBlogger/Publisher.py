@@ -4,10 +4,10 @@ from typing import Dict, Any, Optional
 from playwright.async_api import Page, BrowserContext
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
-from app.tools.Str2Md import Str2Md
+from app.Bloggers.BasePublisher import BasePublisher
 
 
-class ZhihuPublisher:
+class ZhihuPublisher(BasePublisher):
     """知乎内容发布器 - 专注于内容生成和发布"""
 
     def __init__(self, context: BrowserContext, md_path: str):
@@ -18,27 +18,14 @@ class ZhihuPublisher:
             context: Playwright BrowserContext 实例
             md_path: Markdown 文件保存路径
         """
-        self.context = context
-        self.page: Optional[Page] = None
-        self.md_path = md_path
+        super().__init__(context, md_path)
 
         # 组件
         self.Zhihu_Login = None
         self.Zhihu_SendEssay = None
         self.Zhihu_WriteText = None
-        self.str_2_md = None
 
-        # 日志
-        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
-            self.__class__.__name__)
-
-        # 重试配置
-        self.retry_config = {
-            "login": 3,
-            "publish": 2,
-        }
-
-    async def init_without_new_page(self) -> None:
+    async def init(self) -> None:
         """初始化发布器（不创建新 page，使用已有的 page）"""
         try:
             if not self.page:
@@ -46,12 +33,11 @@ class ZhihuPublisher:
                 raise ValueError("page 必须在使用前初始化")
 
             # 初始化组件
-            from app.Bloggers.ZhihuBlogger.SendEssay import AsyncSendEssay
+            from app.Bloggers.ZhihuBlogger.SendEssay import AsyncZhihuSendEssay
             from app.Bloggers.ZhihuBlogger.WriteText import WriteZhihuText
 
-            self.Zhihu_SendEssay = AsyncSendEssay(page=self.page)
+            self.Zhihu_SendEssay = AsyncZhihuSendEssay(page=self.page)
             self.Zhihu_WriteText = WriteZhihuText(model_name="deepseek-chat")
-            self.str_2_md = Str2Md()
 
             self.log.info("知乎发布器初始化成功（共用 page）")
 
@@ -138,18 +124,3 @@ class ZhihuPublisher:
         except Exception as e:
             self.log.error(f"生成并发布失败：{e}", exc_info=True)
             return False
-
-    def _sanitize_filename(self, title: str) -> str:
-        """清理标题中的特殊字符，使其适合作为文件名"""
-        invalid_chars = r'<>"|*?/\\:'
-        sanitized = title
-        for char in invalid_chars:
-            sanitized = sanitized.replace(char, '_')
-
-        sanitized = ' '.join(sanitized.split())
-
-        max_length = 200
-        if len(sanitized) > max_length:
-            sanitized = sanitized[:max_length]
-
-        return sanitized

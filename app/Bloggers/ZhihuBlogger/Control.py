@@ -8,7 +8,6 @@ from typing import Dict, Any, Optional, List, Literal
 from playwright.sync_api import Page
 from playwright.async_api import BrowserContext
 
-from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 from app.Bloggers.BasePlatform import BasePlatform
 
@@ -196,7 +195,7 @@ class ZhihuAsyncControl(BasePlatform):
             self.log.info(f"🚀 初始化知乎平台，模式：{self.mode}")
             from app.Bloggers.ZhihuBlogger.Publisher import ZhihuPublisher
             from app.Bloggers.ZhihuBlogger.Monitor import ZhihuMonitor
-            self.monitor = ZhihuPublisher(context=self.context, md_path=self.md_path)
+            self.publisher = ZhihuPublisher(context=self.context, md_path=self.md_path)
             self.monitor = ZhihuMonitor(context=self.context)
 
             # 确保监控和发布页面都已准备
@@ -263,7 +262,7 @@ class ZhihuAsyncControl(BasePlatform):
 
             # 关联到监控器并初始化
             self.monitor.page = self.monitor_page
-            await self.monitor.init_without_new_page()
+            await self.monitor.init()
             self._monitor_initialized = True
 
             self.log.info("✅ 监控页面已就绪")
@@ -290,7 +289,7 @@ class ZhihuAsyncControl(BasePlatform):
 
             # 关联到发布器并初始化
             self.publisher.page = self.publish_page
-            await self.publisher.init_without_new_page()
+            await self.publisher.init()
             self._publisher_initialized = True
 
             self.log.info("✅ 发布页面已就绪")
@@ -414,7 +413,8 @@ class ZhihuAsyncControl(BasePlatform):
         self.log.info(f"🔍 开始监控热榜（范围：{self.start_index}-{self.end_index}）")
         await self.monitor.run_monitor(
             hot_titles_file=r"D:\pythonproject\Ai_Blogger\app\Bloggers\ZhihuBlogger\hot_titles.json",
-            check_interval=check_interval
+            check_interval=check_interval,
+            Get_Hot_Class=self.monitor.Zhihu_GetHot
         )
 
     async def close(self) -> None:

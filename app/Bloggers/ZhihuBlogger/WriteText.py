@@ -177,24 +177,13 @@ class WriteZhihuText:
 
 
 if __name__ == '__main__':
-    # 创建 WriteZhihuText 实例
-    writer = WriteZhihuText(model_name="deepseek-chat")
+    import asyncio
 
-    # 定义热点话题信息
-    hot_title = "人工智能是否会取代人类工作？"
-    hot_content = [
-        "近年来，AI技术飞速发展，许多传统岗位面临被替代的风险。",
-        "例如，自动驾驶技术可能影响司机群体，智能客服系统正在取代人工客服。"
-    ]
-    question_head = "普通人应该如何应对AI带来的职业冲击？"
 
-    # 调用 write_hot_text 方法生成文章
-    article, history = writer.write_hot_text(
-        hot_title=hot_title,
-        hot_content=hot_content,
-        question_head=question_head
-    )
+    async def main():
+        write_text = WriteZhihuText()
+        content, new_msg_history = await write_text.write_hot_text_async("梅姨被逮捕", ["梅姨被逮捕", "梅姨被逮捕"], "")
+        print(content)
 
-    # 输出生成的文章内容
-    print("生成的知乎文章：")
-    print(article)
+
+    asyncio.run(main())

@@ -216,14 +216,23 @@ class LLM:
 
 
 if __name__ == '__main__':
-    llm = LLM()
-    client = llm.create_client("deepseek-chat")
-    content, new_msg_history = llm.get_response_from_llm(
-        user_prompt="你好",
-        client=client,
-        model="deepseek-chat",
-        system_prompt="你是一个有用的AI助手，可以帮助用户解决各种问题。",
-        temperature=0.7
-    )
-    print(content)
-    print(new_msg_history)
+    import asyncio
+
+
+    async def main():
+        llm = LLM()
+        # 使用异步客户端
+        client = llm.create_async_client("deepseek-chat")
+        content, new_msg_history = await llm.get_response_from_llm_async(
+            user_prompt="你好",
+            client=client,
+            model="deepseek-chat",
+            system_prompt="你是一个有用的AI助手，可以帮助用户解决各种问题。",
+            temperature=0.7
+        )
+        print(content)
+        print(new_msg_history)
+
+
+    # 运行异步主函数
+    asyncio.run(main())
