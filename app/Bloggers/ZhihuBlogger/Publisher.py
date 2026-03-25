@@ -1,9 +1,7 @@
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
-from playwright.async_api import Page, BrowserContext
-from app.tools.LoggingConfig import LoggingConfig
-from app.core.config_manager import config
+from playwright.async_api import BrowserContext
 from app.Bloggers.BasePublisher import BasePublisher
 
 
@@ -33,8 +31,8 @@ class ZhihuPublisher(BasePublisher):
                 raise ValueError("page 必须在使用前初始化")
 
             # 初始化组件
-            from app.Bloggers.ZhihuBlogger.SendEssay import AsyncZhihuSendEssay
-            from app.Bloggers.ZhihuBlogger.WriteText import WriteZhihuText
+            from app.Bloggers.ZhihuBlogger.module.SendEssay import AsyncZhihuSendEssay
+            from app.Bloggers.ZhihuBlogger.module.WriteText import WriteZhihuText
 
             self.Zhihu_SendEssay = AsyncZhihuSendEssay(page=self.page)
             self.Zhihu_WriteText = WriteZhihuText(model_name="deepseek-chat")
@@ -91,12 +89,12 @@ class ZhihuPublisher(BasePublisher):
         """
         try:
             # 初始化 GetHot 组件（临时使用）
-            from app.Bloggers.ZhihuBlogger.GetHot import AsyncZhihuGetHot
+            from app.Bloggers.ZhihuBlogger.module.GetHot import AsyncZhihuGetHot
             zhihu_get_hot = AsyncZhihuGetHot(page=self.page, logging=True)
 
             # 获取热榜内容
             self.log.info(f"📖 正在获取内容：{hot_title['title']}")
-            hot_text_content = await zhihu_get_hot.get_hot_content(hot_title['href'])
+            hot_text_content = await zhihu_get_hot.get_hot_content_list(hot_title['href'])
 
             # AI 生成文案
             self.log.info("✍️ 正在生成文案...")

@@ -742,6 +742,7 @@ class MultiPlatformManager:
 # ==================== 测试代码 ====================
 if __name__ == '__main__':
     from app.Bloggers.ZhihuBlogger.Control import ZhihuAsyncControl
+    from app.Bloggers.WeiboBlogger.Control import WeiboAsyncControl
     import warnings
     import sys
     import signal
@@ -789,17 +790,31 @@ if __name__ == '__main__':
             await manager.init()
             await check_exit()
 
-            # 注册知乎平台（使用新的 mode 参数）
+            # 注册微博平台（使用新的 mode 参数）
             await manager.register_platform(
-                platform_name='zhihu',
-                platform_class=ZhihuAsyncControl,
-                user_data_dir='zhihu_data',
+                platform_name='weibo',
+                platform_class=WeiboAsyncControl,
+                user_data_dir='weibo_data',
                 mode=PLATFORM_MODE_MONITOR_AND_PUBLISH,  # 新增参数
                 save_config=True
             )
             await check_exit()
 
-            # 启动监控
+            # 注册知乎平台
+            await manager.register_platform(
+                platform_name='zhihu',
+                platform_class=ZhihuAsyncControl,
+                user_data_dir='zhihu_data',
+                mode=PLATFORM_MODE_MONITOR_AND_PUBLISH,
+                save_config=True
+            )
+            await check_exit()
+
+            # 启动微博监控
+            await manager.start_monitor('weibo', interval=DEFAULT_MONITOR_INTERVAL)
+            await check_exit()
+
+            # ========== 新增：启动知乎监控 ==========
             await manager.start_monitor('zhihu', interval=DEFAULT_MONITOR_INTERVAL)
             await check_exit()
 

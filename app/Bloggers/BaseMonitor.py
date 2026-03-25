@@ -1,13 +1,12 @@
 import asyncio
 import json
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from playwright.async_api import BrowserContext, Page
-from typing import Dict, Any, Optional, List, Callable
+from typing import Any, Optional, List, Callable
 
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
-from app.Bloggers.ZhihuBlogger.GetHot import AsyncZhihuGetHot
 
 
 class BaseMonitor(ABC):

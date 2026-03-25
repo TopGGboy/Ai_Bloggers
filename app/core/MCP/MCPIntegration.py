@@ -125,9 +125,9 @@ class MCPIntegration:
             # 处理工具调用
             tool_results = []
             for tool_call in last_message["tool_calls"]:
-                tool_name = tool_call.function.name
+                tool_name = tool_call["function"]["name"]
                 try:
-                    arguments = json.loads(tool_call.function.arguments)
+                    arguments = json.loads(tool_call["function"]["arguments"])
                 except json.JSONDecodeError:
                     arguments = {}
 
@@ -137,7 +137,7 @@ class MCPIntegration:
                 # 添加工具结果到消息列表
                 tool_results.append({
                     "role": "tool",
-                    "tool_call_id": tool_call.id,
+                    "tool_call_id": tool_call["id"],
                     "content": tool_result,
                     "name": tool_name
                 })
@@ -196,9 +196,9 @@ class MCPIntegration:
             # 【关键修改】异步执行工具
             tool_results = []
             for tool_call in last_message["tool_calls"]:
-                tool_name = tool_call.function.name
+                tool_name = tool_call["function"]["name"]
                 try:
-                    arguments = json.loads(tool_call.function.arguments)
+                    arguments = json.loads(tool_call["function"]["arguments"])
                 except json.JSONDecodeError:
                     arguments = {}
 
@@ -219,7 +219,7 @@ class MCPIntegration:
 
                 tool_results.append({
                     "role": "tool",
-                    "tool_call_id": tool_call.id,
+                    "tool_call_id": tool_call["id"],
                     "content": str(tool_result),
                     "name": tool_name
                 })

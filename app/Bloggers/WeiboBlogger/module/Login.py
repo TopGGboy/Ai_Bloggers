@@ -68,7 +68,10 @@ class AsyncWeiboLogin(BaseLogin):
 
     async def __is_already_logged_in(self):
         """检查是否已登录"""
-        return self.page.url != self.url
+        hot_url = "https://weibo.com/hot/search"
+        await self.page.goto(hot_url)
+
+        return self.page.url == hot_url
 
     async def _login_by_username_and_password(self, username: str = None, password: str = None):
         """账号密码登录"""

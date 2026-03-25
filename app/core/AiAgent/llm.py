@@ -1,4 +1,6 @@
 import openai
+import re
+import json
 from typing import Any, List, Dict, Tuple
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config  # 使用新的配置管理器
@@ -150,9 +152,19 @@ class LLM:
                 content = response.choices[0].message.content
                 new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
 
-                # 如果有工具调用，也添加到消息历史中
+                # 修改后：
                 if hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
-                    new_msg_history[-1]["tool_calls"] = response.choices[0].message.tool_calls
+                    new_msg_history[-1]["tool_calls"] = [
+                        {
+                            "id": tc.id,
+                            "type": tc.type,
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments
+                            }
+                        }
+                        for tc in response.choices[0].message.tool_calls
+                    ]
 
         except Exception as e:
             self.log.error(f"调用大模型API时出错：{e}")
@@ -205,14 +217,75 @@ class LLM:
                 content = response.choices[0].message.content
                 new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
 
+                # 修改后：
                 if hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
-                    new_msg_history[-1]["tool_calls"] = response.choices[0].message.tool_calls
+                    new_msg_history[-1]["tool_calls"] = [
+                        {
+                            "id": tc.id,
+                            "type": tc.type,
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments
+                            }
+                        }
+                        for tc in response.choices[0].message.tool_calls
+                    ]
 
         except Exception as e:
             self.log.error(f"调用大模型 API 时出错：{e}")
             raise e
 
         return content, new_msg_history
+
+
+def extract_json_between_markers(llm_output: str) -> dict | None:
+    """
+    从大模型输出中提取并解析JSON内容。（仅提取匹配的第一个JSON块）
+
+    该函数尝试从LLM的输出文本中提取JSON数据，支持多种格式：
+    1. 首先尝试提取Markdown代码块中的JSON（```json ... ```）
+    2. 如果失败，尝试提取任何花括号包裹的内容
+    3. 对于解析失败的JSON，尝试清理控制字符后重新解析
+
+    Args:
+        llm_output (str): 大模型的输出文本，可能包含JSON内容
+
+    Returns:
+        dict | None: 成功解析返回字典对象，失败返回None
+
+    Note:
+        - 函数会按顺序尝试所有匹配的JSON字符串，返回第一个成功解析的结果
+        - 使用re.DOTALL模式以支持多行JSON内容
+        - 自动清理无效的控制字符（\\x00-\\x1F, \\x7F）
+    """
+    if llm_output is None:
+        return None
+    # 在```json和```之间查找JSON内容的正则表达式模式
+    json_pattern = r"```json(.*?)```"
+    matches = re.findall(json_pattern, llm_output,
+                         re.DOTALL)  # 在llm_output中查找所有匹配json_pattern的内容。re.DOTALL表示点号匹配包括换行符在内的所有字符。
+
+    if not matches:
+        # 如果没有找到匹配的JSON内容，则尝试在输出中查找任何JSON-like内容
+        json_pattern = r"\{.*?\}"
+        matches = re.findall(json_pattern, llm_output, re.DOTALL)
+
+    for json_string in matches:
+        json_string = json_string.strip()
+        try:
+            parsed_json = json.loads(json_string)
+            return parsed_json
+        except json.JSONDecodeError:
+            # 尝试修复常见的JSON问题
+            try:
+                # 移除无效的控制字符
+                json_string_clean = re.sub(r"[\x00-\x1F\x7F]", "", json_string)
+                parsed_json = json.loads(json_string_clean)
+                return parsed_json
+            except json.JSONDecodeError:
+                continue  # 尝试下一个匹配
+
+    return None  # 没有找到有效的JSON
 
 
 if __name__ == '__main__':

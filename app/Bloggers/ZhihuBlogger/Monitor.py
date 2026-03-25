@@ -1,11 +1,4 @@
-import json
-import os
-import asyncio
-from typing import Optional, List, Callable
-
-from playwright.async_api import Page, BrowserContext
-from app.tools.LoggingConfig import LoggingConfig
-from app.core.config_manager import config
+from playwright.async_api import BrowserContext
 
 from app.Bloggers.BaseMonitor import BaseMonitor
 
@@ -31,7 +24,7 @@ class ZhihuMonitor(BaseMonitor):
                 raise ValueError("page 必须在使用前初始化")
 
             # 初始化获取热榜组件
-            from app.Bloggers.ZhihuBlogger.GetHot import AsyncZhihuGetHot
+            from app.Bloggers.ZhihuBlogger.module.GetHot import AsyncZhihuGetHot
             self.Zhihu_GetHot = AsyncZhihuGetHot(page=self.page, logging=True)
 
             self.log.info("知乎监控器初始化成功")

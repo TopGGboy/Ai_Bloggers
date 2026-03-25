@@ -7,7 +7,7 @@ from app.core.config_manager import config
 from app.Bloggers.BaseSendEssay import BaseSendEssay
 
 
-class AsyncZhihuSendEssay(BaseSendEssay):
+class AsyncZhihuSendAnswer(BaseSendEssay):
     def __init__(self, page: Page):
         """
         异步版本：知乎回答机器人
@@ -128,14 +128,14 @@ async def test_zhihu_answer_bot():
     """
     from app.core.PlaywrightDriver import AsyncPlaywrightDriver
 
-    USER_DATA_DIR = r"D:\pythonproject\Ai_Blogger\driver\playwright_data"
+    USER_DATA_DIR = r"/driver/playwright_data"
 
     async with AsyncPlaywrightDriver(user_data_dir=USER_DATA_DIR) as driver:
         browser, context, page = await driver.launch_browser(viewport_type="pc")
 
         sendessay = AsyncSendEssay(page)
         await sendessay.send_essay(href="https://www.zhihu.com/question/2011788981294081499",
-                                   file_path=r"D:\pythonproject\Ai_Blogger\Md\example_1.md")
+                                   file_path=r"/Md/example_1.md")
 
 
 if __name__ == '__main__':

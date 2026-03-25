@@ -19,7 +19,7 @@ class AsyncWeiboSendEssay(BaseSendEssay):
         self.waiter = AsyncElementWaiter(page=self.page)
         self.update = False
 
-    async def send_essay(self, file_path: str = None, href: str = None):
+    async def send_essay(self, content: str = None, href: str = None):
         """发送微博"""
         try:
 

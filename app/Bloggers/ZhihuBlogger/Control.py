@@ -1,14 +1,9 @@
-import time
-import json
-import os
 import asyncio
-from enum import Enum, auto
-from typing import Dict, Any, Optional, List, Literal
+from typing import Dict, Any, Optional, List
 
 from playwright.sync_api import Page
 from playwright.async_api import BrowserContext
 
-from app.core.config_manager import config
 from app.Bloggers.BasePlatform import BasePlatform
 
 PLATFORM_MODE_MONITOR_ONLY = "monitor_only"  # 只监控
@@ -231,7 +226,7 @@ class ZhihuAsyncControl(BasePlatform):
             # 创建一个临时页面用于登录
             temp_page = await self.context.new_page()
             try:
-                from app.Bloggers.ZhihuBlogger.Login import AsyncZhihuLogin
+                from app.Bloggers.ZhihuBlogger.module.Login import AsyncZhihuLogin
                 login = AsyncZhihuLogin(page=temp_page, user_data_dir=self.user_data_dir)
                 await login.login()
                 await temp_page.close()  # 登录完成后关闭临时页面

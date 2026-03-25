@@ -165,7 +165,7 @@ class AsyncZhihuLogin(BaseLogin):
 async def test_zhihu_login():
     from app.core.PlaywrightDriver import AsyncPlaywrightDriver
 
-    USER_DATA_DIR = r"D:\pythonproject\Ai_Blogger\driver\playwright_data"
+    USER_DATA_DIR = r"/driver/playwright_data"
 
     async with AsyncPlaywrightDriver(user_data_dir=USER_DATA_DIR) as driver:
         browser, context, page = await driver.launch_browser(viewport_type="pc")

@@ -5,16 +5,17 @@ from playwright.async_api import Page
 from app.tools.ElementWaiter import AsyncElementWaiter
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
+from app.Bloggers.BaseGetHot import BaseGetHot
 
 
-class AsyncZhihuGetHot:
+class AsyncZhihuGetHot(BaseGetHot):
     def __init__(self, page: Page, logging=False):
         """
         异步版本：获取知乎热榜信息
 
         :param page: Playwright Page 实例
         """
-        self.page = page
+        super().__init__(page)
         self.url = r"https://www.zhihu.com/hot"
         self.waiter = AsyncElementWaiter(self.page)
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
@@ -38,7 +39,7 @@ class AsyncZhihuGetHot:
                 self.log.error(f"获取知乎热榜失败：{e}")
             return []
 
-    async def get_hot_content(self, href):
+    async def get_hot_content_list(self, href):
         """获取知乎热榜内容"""
         try:
             await self.page.goto(href)
@@ -116,7 +117,7 @@ class AsyncZhihuGetHot:
 async def test_zhihu_hot_fetcher():
     from app.core.PlaywrightDriver import AsyncPlaywrightDriver
 
-    USER_DATA_DIR = r"D:\pythonproject\Ai_Blogger\driver\playwright_data"
+    USER_DATA_DIR = r"/driver/playwright_data"
 
     async with AsyncPlaywrightDriver(user_data_dir=USER_DATA_DIR) as driver:
         browser, context, page = await driver.launch_browser(viewport_type="pc")
@@ -142,7 +143,7 @@ async def test_zhihu_hot_fetcher():
         hot_title_lists = await get_hot.get_hot_title_list(1, 1)
         print(hot_title_lists)
         print(hot_title_lists[0]["href"])
-        hot_content = await get_hot.get_hot_content(hot_title_lists[0]["href"])
+        hot_content = await get_hot.get_hot_content_list(hot_title_lists[0]["href"])
         print(hot_content)
 
 
