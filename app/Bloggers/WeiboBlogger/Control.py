@@ -48,7 +48,8 @@ class WeiboAsyncControl(BasePlatform):
             self._need_publish = mode in (PLATFORM_MODE_PUBLISH_ONLY, PLATFORM_MODE_MONITOR_AND_PUBLISH)
             self._auto_publish = mode == PLATFORM_MODE_MONITOR_AND_PUBLISH
 
-        super().__init__(context, md_path, mode, user_data_dir)
+        super().__init__(platform_name="weibo", context=context, md_path=md_path, mode=mode,
+                         user_data_dir=user_data_dir)
 
         # 监控器和发布器实例，懒加载初始化
         self.monitor = None
@@ -155,7 +156,7 @@ class WeiboAsyncControl(BasePlatform):
             self.log.info(f"🔍 开始监控并发布（范围：{self.start_index}-{self.end_index}，间隔：{check_interval}秒）")
             await self.run_monitor(
                 check_interval=check_interval,
-                hot_titles_file=r"D:\pythonproject\Ai_Blogger\app\Bloggers\ZhihuBlogger\hot_titles.json"
+                hot_titles_file=self.hot_titles_file
             )
 
         except Exception as e:
@@ -384,7 +385,7 @@ class WeiboAsyncControl(BasePlatform):
 
         self.log.info(f"🔍 开始监控热榜（范围：{self.start_index}-{self.end_index}）")
         await self.monitor.run_monitor(
-            hot_titles_file=r"D:\pythonproject\Ai_Blogger\app\Bloggers\ZhihuBlogger\hot_titles.json",
+            hot_titles_file=self.hot_titles_file,
             check_interval=check_interval,
             Get_Hot_Class=self.monitor.Weibo_GetHot
         )

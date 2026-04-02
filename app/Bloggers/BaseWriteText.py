@@ -9,7 +9,7 @@ class BaseWriteText(ABC):
     抽象发文类 - 定义所有平台的统一写文类
     """
 
-    def __init__(self):
+    def __init__(self, platform_name: str):
         """初始化抽象创作类"""
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             f"{self.__class__.__name__}.WriteText")

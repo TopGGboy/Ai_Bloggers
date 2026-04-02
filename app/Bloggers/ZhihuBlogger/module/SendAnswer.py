@@ -1,8 +1,6 @@
 from typing import Optional, List, Tuple
 import asyncio
 from playwright.async_api import Page, Locator
-from app.tools.ElementWaiter import AsyncElementWaiter
-from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 from app.Bloggers.BaseSendEssay import BaseSendEssay
 
@@ -14,9 +12,9 @@ class AsyncZhihuSendAnswer(BaseSendEssay):
 
         :param page: Playwright Page 实例
         """
-        super().__init__(page=page)
-        self.url = r'https://www.zhihu.com/hot'
-        self.waiter = AsyncElementWaiter(page=self.page)
+        super().__init__(platform_name="zhihu", page=page)
+
+
         self.update = False
 
     async def __to_hot_item(self, href):
@@ -33,13 +31,13 @@ class AsyncZhihuSendAnswer(BaseSendEssay):
         view_answer_button = await self.waiter.wait_for_element(
             '//a[@class="Button FEfUrdfMIKpQDJDqkjte Button--blue JmYzaky7MEPMFcJDLNMG"]',
             condition="visible",
-            timeout=3000
+            timeout=self.element_timeout
         )
 
         change_answer_button = await self.waiter.wait_for_element(
             '//button[@type="button" and contains(@class, "Button FEfUrdfMIKpQDJDqkjte Button--blue JmYzaky7MEPMFcJDLNMG") and contains(text(), "编辑回答")]',
             condition="visible",
-            timeout=3000
+            timeout=self.element_timeout
         )
 
         if view_answer_button:

@@ -4,7 +4,6 @@ import asyncio
 from typing import Optional, List, Callable
 
 from playwright.async_api import Page, BrowserContext
-from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 
 from app.Bloggers.BaseMonitor import BaseMonitor
@@ -19,7 +18,7 @@ class WeiboMonitor(BaseMonitor):
 
         :param context: Playwright BrowserContext 实例
         """
-        super().__init__(context)
+        super().__init__(platform_name="weibo", context=context)
         self.Weibo_GetHot = None
 
     async def init(self) -> None:

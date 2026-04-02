@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 
 from playwright.async_api import Page
 from app.Bloggers.BaseGetHot import BaseGetHot
-from app.tools.ElementWaiter import AsyncElementWaiter
 
 
 class AsyncWeiboGetHot(BaseGetHot):
@@ -14,9 +13,7 @@ class AsyncWeiboGetHot(BaseGetHot):
 
         :param page: Playwright Page 实例
         """
-        super().__init__(page)
-        self.url = r"https://weibo.com/hot/search"
-        self.waiter = AsyncElementWaiter(self.page)
+        super().__init__(platform_name="weibo", page=page)
 
     async def get_hot_title_list(self, begin, end):
         """获取指定范围内的热榜标题"""

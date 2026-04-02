@@ -5,15 +5,12 @@ import re
 
 from playwright.async_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
 from app.Bloggers.BaseLogin import BaseLogin
-from app.tools.ElementWaiter import AsyncElementWaiter
 
 
 class AsyncWeiboLogin(BaseLogin):
     def __init__(self, page: Page, user_data_dir: str):
         """初始化异步登录类"""
-        super().__init__(page, user_data_dir)
-        self.url = "https://passport.weibo.com/sso/signin"
-        self.waiter = AsyncElementWaiter(page=page)
+        super().__init__(platform_name="weibo", page=page, user_data_dir=user_data_dir)
         self.login_in = False
         self.image = None
 
@@ -24,47 +21,14 @@ class AsyncWeiboLogin(BaseLogin):
             self.log.info("已经登录成功")
             return
 
-        self._show_menu()
-        choice = self.__get_user_choice()
-        if choice == 0:
-            print("退出程序")
-            self.log.info("退出程序")
-            return
+        await self.__execute_login()
 
-        await self.__execute_login(choice)
-
-    def _show_menu(self):
-        """显示登录方式菜单"""
-        print("欢迎使用 微博 Logger")
-        print("1. 扫码登录")
-        print("2. 账号密码登录")
-        print("0. 退出程序")
-
-    def __get_user_choice(self):
-        """获取用户输入的选项"""
-        try:
-            choice = int(input("请输入你的选择："))
-            return choice
-        except ValueError:
-            print("输入无效，请输入数字 0、1 或 2。")
-            self.log.error("输入无效，请输入数字 0、1 或 2。")
-            return -1
-
-    async def __execute_login(self, choice):
-        """根据用户选择执行相应的登录方式"""
-        if choice == 1:
+    async def __execute_login(self):
+        """执行登录操作"""
+        if self.login_type == "username_and_password":
+            await self._login_by_username_and_password(username=self.username, password=self.password)
+        elif self.login_type == "qrcode":
             await self._login_by_qrcode()
-        elif choice == 2:
-            # TODO 注意账号密码
-            username = input("请输入用户名：")
-            username = "13939826475"
-            password = input("请输入密码：")
-            password = "@@3085678256Gzj."
-
-            await self._login_by_username_and_password(username=username, password=password)
-        else:
-            print("请输入正确的选择")
-            self.log.info("请输入正确的选择")
 
     async def __is_already_logged_in(self):
         """检查是否已登录"""
@@ -97,7 +61,7 @@ class AsyncWeiboLogin(BaseLogin):
 
             await self.waiter.safe_click_locator(login_button)
 
-            if await self.waiter.wait_for_url_change(self.url, timeout=60000):
+            if await self.waiter.wait_for_url_change(self.url, timeout=self.login_timeout):
                 print("登录成功")
                 self.log.info("登录成功")
 
@@ -125,43 +89,73 @@ class AsyncWeiboLogin(BaseLogin):
             self.log.error(f"账号密码登录失败：{e}")
 
     async def _login_by_qrcode(self):
-        """扫码登陆"""
+        """扫码登录- 不提取二维码图片，用户自己扫描"""
         try:
-            qr_locator = self.page.locator("div").filter(
-                has_text=re.compile(r"^扫描二维码登录打开微博手机APP - 我的页面 - 扫一扫$")).locator(
-                "img")
-
-            await self.waiter.wait_for_locator(qr_locator, condition="visible", timeout=10000)
-            qr_image = await self.__capture_qr_code(qr_locator)
-            self.image = qr_image
-            self.__show_qr_code()
-            self.log.info("请打开手机应用扫描二维码登录")
-
-            if await self.waiter.wait_for_url_change(self.url, timeout=60000):
-                print("登录成功")
-                self.log.info("登录成功")
+            # 等待登录成功（URL 变化表示登录成功）
+            self.log.info(f"⏳ 等待扫码登录 (超时时间：{self.login_timeout}ms)")
+            if await self.waiter.wait_for_url_change(self.url, timeout=self.login_timeout):
+                self.log.info("✅ 登录成功")
+                print("✅ 登录成功！")
 
                 # 登录成功后立即保存 storage state
                 try:
-                    # 获取页面的上下文
                     context = self.page.context
-                    # 构建 storage state 文件路径
                     import os
                     storage_state_file = os.path.join(
-                        fr"{self.user_data_dir}",
+                        rf"{self.user_data_dir}",
                         "storage_state.json"
                     )
-                    # 保存 storage state
                     await context.storage_state(path=storage_state_file)
-                    self.log.info(f"✅ 登录成功后保存 storage state 到：{storage_state_file}")
+                    self.log.info(f"✅ 已保存登录状态到：{storage_state_file}")
                 except Exception as e:
-                    self.log.warning(f"保存 storage state 失败：{str(e)}")
+                    self.log.warning(f"⚠️ 保存 storage state 失败：{str(e)}")
             else:
-                print("登录失败：超时未跳转")
-                self.log.error("登录失败：超时未跳转")
+                self.log.error("❌ 登录失败：超时未扫码")
+                print("❌ 登录超时，请重新尝试")
 
         except Exception as e:
-            self.log.error(f"二维码码登录失败：{e}")
+            self.log.error(f"❌ 二维码登录失败：{e}", exc_info=True)
+            print(f"❌ 二维码登录失败：{e}")
+            raise
+
+    # async def _login_by_qrcode(self):
+    #     """扫码登陆"""
+    #     try:
+    #         qr_locator = self.page.locator("div").filter(
+    #             has_text=re.compile(r"^扫描二维码登录打开微博手机APP - 我的页面 - 扫一扫$")).locator(
+    #             "img")
+    #
+    #         await self.waiter.wait_for_locator(qr_locator, condition="visible", timeout=self.login_timeout)
+    #         qr_image = await self.__capture_qr_code(qr_locator)
+    #         self.image = qr_image
+    #         self.__show_qr_code()
+    #         self.log.info("请打开手机应用扫描二维码登录")
+    #
+    #         if await self.waiter.wait_for_url_change(self.url, timeout=60000):
+    #             print("登录成功")
+    #             self.log.info("登录成功")
+    #
+    #             # 登录成功后立即保存 storage state
+    #             try:
+    #                 # 获取页面的上下文
+    #                 context = self.page.context
+    #                 # 构建 storage state 文件路径
+    #                 import os
+    #                 storage_state_file = os.path.join(
+    #                     fr"{self.user_data_dir}",
+    #                     "storage_state.json"
+    #                 )
+    #                 # 保存 storage state
+    #                 await context.storage_state(path=storage_state_file)
+    #                 self.log.info(f"✅ 登录成功后保存 storage state 到：{storage_state_file}")
+    #             except Exception as e:
+    #                 self.log.warning(f"保存 storage state 失败：{str(e)}")
+    #         else:
+    #             print("登录失败：超时未跳转")
+    #             self.log.error("登录失败：超时未跳转")
+    #
+    #     except Exception as e:
+    #         self.log.error(f"二维码码登录失败：{e}")
 
     async def __capture_qr_code(self, element: Locator):
         """截取二维码"""

@@ -1,8 +1,6 @@
 from typing import Optional, List, Tuple
 import asyncio
 from playwright.async_api import Page, Locator
-from app.tools.ElementWaiter import AsyncElementWaiter
-from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 from app.Bloggers.BaseSendEssay import BaseSendEssay
 
@@ -14,9 +12,8 @@ class AsyncWeiboSendEssay(BaseSendEssay):
 
         :param page: Playwright Page 实例
         """
-        super().__init__(page=page)
+        super().__init__(platform_name="weibo", page=page)
         self.url = r"https://card.weibo.com/article/v5/editor#/draft"
-        self.waiter = AsyncElementWaiter(page=self.page)
         self.update = False
 
     async def send_essay(self, content: str = None, href: str = None):
@@ -60,7 +57,7 @@ class AsyncWeiboSendEssay(BaseSendEssay):
             upload_input = await self.waiter.wait_for_element(
                 """//input[@type='file' and contains(@accept,'.jpg')]""",
                 condition="attached",
-                timeout=5000
+                timeout=self.element_timeout
             )
 
             image_path = r"/Md/92917c72e24c4702bee6558f288ef959.png"
@@ -82,7 +79,7 @@ class AsyncWeiboSendEssay(BaseSendEssay):
             await asyncio.sleep(10)  # 等待图片上传完成
 
             # 6. 选择图片
-            await self.waiter.safe_click_locator(self.page.locator(".select-mask").first, timeout=5000)
+            await self.waiter.safe_click_locator(self.page.locator(".select-mask").first, timeout=self.element_timeout)
 
             # 7. 点击下一步
             await self.waiter.safe_click_locator(

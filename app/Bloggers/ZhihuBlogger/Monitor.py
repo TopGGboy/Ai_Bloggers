@@ -1,6 +1,7 @@
 from playwright.async_api import BrowserContext
 
 from app.Bloggers.BaseMonitor import BaseMonitor
+from app.core.config_manager import config
 
 
 class ZhihuMonitor(BaseMonitor):
@@ -13,8 +14,9 @@ class ZhihuMonitor(BaseMonitor):
         Args:
             context: Playwright BrowserContext 实例
         """
-        super().__init__(context)
+        super().__init__(platform_name="zhihu", context=context)
         self.Zhihu_GetHot = None
+
 
     async def init(self) -> None:
         """初始化监控器（不创建新 page，使用已有的 page）"""
@@ -25,7 +27,7 @@ class ZhihuMonitor(BaseMonitor):
 
             # 初始化获取热榜组件
             from app.Bloggers.ZhihuBlogger.module.GetHot import AsyncZhihuGetHot
-            self.Zhihu_GetHot = AsyncZhihuGetHot(page=self.page, logging=True)
+            self.Zhihu_GetHot = AsyncZhihuGetHot(page=self.page)
 
             self.log.info("知乎监控器初始化成功")
 
@@ -48,7 +50,7 @@ class ZhihuMonitor(BaseMonitor):
                 return
 
             if hot_titles_file is None:
-                hot_titles_file = r"D:\pythonproject\Ai_Blogger\app\Bloggers\ZhihuBlogger\hot_titles.json"
+                hot_titles_file = self.hot_titles_file
 
             # 导航到热榜页面
             self.log.info("🌐 正在导航到热榜页面...")

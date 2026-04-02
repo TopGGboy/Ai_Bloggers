@@ -5,7 +5,6 @@ from pathlib import Path
 
 from playwright.async_api import Page, BrowserContext
 from app.Bloggers.BasePublisher import BasePublisher
-from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 
 
@@ -20,7 +19,7 @@ class WeiboPublisher(BasePublisher):
             context: Playwright BrowserContext 实例
             md_path: Markdown 文件保存路径
         """
-        super().__init__(context, md_path)
+        super().__init__(platform_name="weibo", context=context, md_path=md_path)
 
         # 组件
         self.Weibo_Login = None

@@ -18,7 +18,8 @@ class BasePlatform(ABC):
     3. 支持异步操作
     """
 
-    def __init__(self, context: BrowserContext, md_path: str, mode: str = None, user_data_dir: str = None):
+    def __init__(self, platform_name: str, context: BrowserContext, md_path: str, mode: str = None,
+                 user_data_dir: str = None):
         """
         初始化平台
 
@@ -33,6 +34,8 @@ class BasePlatform(ABC):
         self.platform_name = self.__class__.__name__
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             f"{self.platform_name}.Control")
+
+        self.hot_titles_file = config.platforms[platform_name]["paths"]["hot_title_file"]
 
     @abstractmethod
     async def run(self, check_interval: int = 600) -> None:

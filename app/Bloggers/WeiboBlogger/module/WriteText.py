@@ -54,7 +54,7 @@ class WriteWeiboText(BaseWriteText):
         Args:
             model_name (str): 使用的大模型名称，默认为 deepseek-chat
         """
-        super().__init__()
+        super().__init__(platform_name="weibo")
         self.model_name = model_name
         self.llm = LLM()
         self.client = self.llm.create_async_client(model_name)  # 用于异步生成

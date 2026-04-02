@@ -3,6 +3,7 @@ from typing import Dict, Any
 
 from playwright.async_api import BrowserContext
 from app.Bloggers.BasePublisher import BasePublisher
+from app.core.config_manager import config
 
 
 class ZhihuPublisher(BasePublisher):
@@ -16,11 +17,11 @@ class ZhihuPublisher(BasePublisher):
             context: Playwright BrowserContext 实例
             md_path: Markdown 文件保存路径
         """
-        super().__init__(context, md_path)
+        super().__init__(platform_name="zhihu", context=context, md_path=md_path)
 
         # 组件
         self.Zhihu_Login = None
-        self.Zhihu_SendEssay = None
+        self.Zhihu_SendAnswer = None
         self.Zhihu_WriteText = None
 
     async def init(self) -> None:
@@ -31,11 +32,11 @@ class ZhihuPublisher(BasePublisher):
                 raise ValueError("page 必须在使用前初始化")
 
             # 初始化组件
-            from app.Bloggers.ZhihuBlogger.module.SendEssay import AsyncZhihuSendEssay
+            from app.Bloggers.ZhihuBlogger.module.SendAnswer import AsyncZhihuSendAnswer
             from app.Bloggers.ZhihuBlogger.module.WriteText import WriteZhihuText
 
-            self.Zhihu_SendEssay = AsyncZhihuSendEssay(page=self.page)
-            self.Zhihu_WriteText = WriteZhihuText(model_name="deepseek-chat")
+            self.Zhihu_SendAnswer = AsyncZhihuSendAnswer(page=self.page)
+            self.Zhihu_WriteText = WriteZhihuText(model_name=self.model_name)
 
             self.log.info("知乎发布器初始化成功（共用 page）")
 
@@ -68,7 +69,7 @@ class ZhihuPublisher(BasePublisher):
             file_name = os.path.join(self.md_path, f"{sanitized_title}.md")
             self.str_2_md.save_2_md(text_content, file_name=file_name)
 
-            await self.Zhihu_SendEssay.login()
+            await self.Zhihu_SendAnswer.login()
 
             self.log.info(f"内容发布成功：{title}")
             return True
@@ -114,7 +115,7 @@ class ZhihuPublisher(BasePublisher):
 
             # 【关键】在主发布页面上执行发布操作
             self.log.info("📤 正在发布文章...")
-            await self.Zhihu_SendEssay.send_essay(href=hot_title['href'], file_path=file_path)
+            await self.Zhihu_SendAnswer.send_essay(href=hot_title['href'], file_path=file_path)
 
             self.log.info(f"✅ 文章发布成功：{hot_title['title']}")
             return True

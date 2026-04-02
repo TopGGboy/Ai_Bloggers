@@ -71,6 +71,11 @@ class ConfigManager:
         """获取 DeepSeek API 密钥"""
         return self._config['api']['deepseek']['api_key']
 
+    @property
+    def platforms(self) -> str:
+        """获取平台配置"""
+        return self._config['platforms']
+
     def get(self, path: str, default=None):
         """获取嵌套配置值，支持路径访问如 'app.log_level'"""
         keys = path.split('.')

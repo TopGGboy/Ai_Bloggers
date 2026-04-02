@@ -14,3 +14,45 @@ api:
     max_tokens: 1024
     timeout: 60
     retry_attempts: 3
+
+platforms:
+  zhihu:
+    login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
+    user_name: "13939826475"
+    password: "@@3085678256Gzj."
+    login_timeout: 60000  # 登录超时时间，单位毫秒
+    element_timeout: 3000  # 元素等待超时时间，单位毫秒
+
+    model:
+      name: "deepseek-chat"
+      temperature: 0.7
+
+
+    urls:
+      hot_list: "https://www.zhihu.com/hot"
+      login: "https://www.zhihu.com/signin?next=%2F"
+
+    # 文件路径设置
+    paths:
+      hot_title_file: "D:/pythonproject/Ai_Blogger/Data/zhihu_hot_titles.json"  # 热门标题文件
+      storage_state: "D:/pythonproject/Ai_Blogger/driver/playwright_data/zhihu_data/storage_state.json"
+      essay_file_json: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays.json"  # 知乎推文json文件
+      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays/zhihu_essays.md"  # 知乎推文md文件
+
+
+  weibo:
+    login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
+    user_name: "13939826475"
+    password: "@@3085678256Gzj."
+    login_timeout: 60000  # 登录超时时间，单位毫秒
+    element_timeout: 3000  # 元素等待超时时间，单位毫秒
+
+    urls:
+      hot_list: "https://weibo.com/hot/search"
+      login: "https://passport.weibo.com/sso/signin"
+
+    paths:
+      hot_title_file: "D:/pythonproject/Ai_Blogger/Data/weibo_hot_titles.json"  # 热门标题文件
+      storage_state: "D:/pythonproject/Ai_Blogger/driver/playwright_data/weibo_data/storage_state.json"
+      essay_file_json: "D:/pythonproject/Ai_Blogger/Data/weibo_essays.json"  # 微博推文json文件
+      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/weibo_essays/weibo_essays.md"  # 微博推文md文件

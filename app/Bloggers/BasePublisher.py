@@ -15,7 +15,7 @@ class BasePublisher(ABC):
     内容发布器基类 - 定义所有发布器的统一接口
     """
 
-    def __init__(self, context: BrowserContext, md_path: str):
+    def __init__(self, platform_name: str, context: BrowserContext, md_path: str):
         """
         初始化发布器
 
@@ -30,6 +30,8 @@ class BasePublisher(ABC):
         # 日志
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             self.__class__.__name__)
+        # 配置项
+        self.model_name = config.platforms[platform_name]["model"].get("name", "deepseek-chat")
 
         # 重试配置
         self.retry_config = {

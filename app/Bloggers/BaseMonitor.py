@@ -14,7 +14,7 @@ class BaseMonitor(ABC):
     监控器基类 - 定义所有监控器的统一接口
     """
 
-    def __init__(self, context: BrowserContext):
+    def __init__(self, platform_name: str, context: BrowserContext):
         """
         初始化监控器
 
@@ -29,6 +29,8 @@ class BaseMonitor(ABC):
         # 日志
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             self.__class__.__name__)
+
+        self.hot_titles_file = config.platforms[platform_name]["paths"]["hot_title_file"]
 
         # 回调函数（当检测到变化时调用）
         self.on_change_callback: Optional[Callable] = None

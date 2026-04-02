@@ -2,25 +2,18 @@ import asyncio
 from typing import Optional, List
 from bs4 import BeautifulSoup
 from playwright.async_api import Page
-from app.tools.ElementWaiter import AsyncElementWaiter
-from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 from app.Bloggers.BaseGetHot import BaseGetHot
 
 
 class AsyncZhihuGetHot(BaseGetHot):
-    def __init__(self, page: Page, logging=False):
+    def __init__(self, page: Page):
         """
         异步版本：获取知乎热榜信息
 
         :param page: Playwright Page 实例
         """
-        super().__init__(page)
-        self.url = r"https://www.zhihu.com/hot"
-        self.waiter = AsyncElementWaiter(self.page)
-        self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
-            self.__class__.__name__)
-        self.logging = logging
+        super().__init__(platform_name="zhihu", page=page)
 
     async def get_hot_title_list(self, begin, end):
         """获取指定范围内的热榜标题"""

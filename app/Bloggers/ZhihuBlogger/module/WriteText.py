@@ -4,6 +4,8 @@ import os
 from app.core.AiAgent.llm import LLM
 from app.core.MCP import MCPIntegration
 
+from app.Bloggers.BaseWriteText import BaseWriteText
+
 SYSTEM_PROMPT = """
 # 知乎博主
 
@@ -62,15 +64,19 @@ SYSTEM_PROMPT = """
 """
 
 
-class WriteZhihuText:
-    def __init__(self, model_name="deepseek-chat"):
+class WriteZhihuText(BaseWriteText):
+    def __init__(self, model_name="deepseek-chat", temperature=0.7):
         """
         初始化知乎文章写作器
 
         Args:
             model_name (str): 使用的大模型名称，默认为 deepseek-chat
+            temperature (float): 温度参数，默认为 0.7
         """
+        super().__init__(platform_name="zhihu")
         self.model_name = model_name
+        self.temperature = temperature
+
         self.llm = LLM()
         self.client = self.llm.create_async_client(model_name)
         self.async_client = self.llm.create_async_client(model_name)  # 用于异步生成
@@ -105,7 +111,7 @@ class WriteZhihuText:
             client=self.client,
             model=self.model_name,
             system_prompt=SYSTEM_PROMPT,
-            temperature=0.7
+            temperature=self.temperature
         )
 
         return content, new_msg_history
