@@ -16,7 +16,7 @@ class AsyncWeiboSendEssay(BaseSendEssay):
         self.url = r"https://card.weibo.com/article/v5/editor#/draft"
         self.update = False
 
-    async def send_essay(self, content: str = None, href: str = None):
+    async def send_essay(self, content: dict = None, href: str = None):
         """发送微博"""
         try:
 
@@ -29,23 +29,18 @@ class AsyncWeiboSendEssay(BaseSendEssay):
 
             await asyncio.sleep(10)  # 等待页面加载完成
 
-            # 1. 点击 输入正文
-            content = "ce"
-
             await self.waiter.safe_fill_locator(
-                self.page.locator(".tiptap"), content
+                self.page.locator(".tiptap"), content["content"]
             )
 
             # 2. 输入标题
-            title = ""
             await self.waiter.safe_fill_locator(
-                self.page.get_by_placeholder("请输入标题"), title
+                self.page.get_by_placeholder("请输入标题"), content["title"]
             )
 
-            # 3. 输入导语
-            summary = ""
+
             await self.waiter.safe_fill_locator(
-                self.page.get_by_placeholder("导语（选填）"), summary
+                self.page.get_by_placeholder("导语（选填）"), content["summary"]
             )
 
             # 4. 设置文章封面
@@ -60,6 +55,7 @@ class AsyncWeiboSendEssay(BaseSendEssay):
                 timeout=self.element_timeout
             )
 
+            # TODO: 需要生成图片
             image_path = r"/Md/92917c72e24c4702bee6558f288ef959.png"
 
             if upload_input:

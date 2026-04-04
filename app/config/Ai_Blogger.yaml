@@ -37,7 +37,8 @@ platforms:
       hot_title_file: "D:/pythonproject/Ai_Blogger/Data/zhihu_hot_titles.json"  # 热门标题文件
       storage_state: "D:/pythonproject/Ai_Blogger/driver/playwright_data/zhihu_data/storage_state.json"
       essay_file_json: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays.json"  # 知乎推文json文件
-      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays/zhihu_essays.md"  # 知乎推文md文件
+      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays_md"  # 知乎推文md文件
+      image_path: "D:/pythonproject/Ai_Blogger/Data/zhihu/"  # 知乎推文图片路径
 
 
   weibo:
@@ -55,4 +56,5 @@ platforms:
       hot_title_file: "D:/pythonproject/Ai_Blogger/Data/weibo_hot_titles.json"  # 热门标题文件
       storage_state: "D:/pythonproject/Ai_Blogger/driver/playwright_data/weibo_data/storage_state.json"
       essay_file_json: "D:/pythonproject/Ai_Blogger/Data/weibo_essays.json"  # 微博推文json文件
-      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/weibo_essays/weibo_essays.md"  # 微博推文md文件
+      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/weibo_essays_md"  # 微博推文md文件
+      image_path: "D:/pythonproject/Ai_Blogger/Data/weibo/"  # 微博推文图片路径

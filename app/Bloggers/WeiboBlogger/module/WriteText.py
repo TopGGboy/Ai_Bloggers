@@ -39,7 +39,7 @@ SYSTEM_PROMPT = """
 ```json
 {
     "title": "标题",
-    "lead": "导语",
+    "summary": "导语",
     "content": "正文"
 }
 ```
