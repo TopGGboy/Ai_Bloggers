@@ -24,12 +24,8 @@ class AsyncZhihuGetHot(BaseGetHot):
             html_data = await self.page.content()
             result = self.__parse_hot_title_list(html_data)
 
-            if self.logging:
-                self.log.info(f"获取知乎热榜标题成功")
             return result[begin - 1:end]
         except Exception as e:
-            if self.logging:
-                self.log.error(f"获取知乎热榜失败：{e}")
             return []
 
     async def get_hot_content_list(self, href):
@@ -44,12 +40,8 @@ class AsyncZhihuGetHot(BaseGetHot):
             html_data = await self.page.content()
             result = self.__parse_hot_content(html_data)
 
-            if self.logging:
-                self.log.info(f"获取知乎热榜内容成功")
             return result
         except Exception as e:
-            if self.logging:
-                self.log.error(f"获取知乎热榜内容失败：{e}")
             return []
 
     def __parse_hot_title_list(self, hot_title_html):

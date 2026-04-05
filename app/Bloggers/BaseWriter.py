@@ -23,7 +23,6 @@ class BaseWriter(ABC):
         # 初始化 Str2Md 工具
         self.str_2_md = Str2Md()
 
-    @abstractmethod
     async def write(self, hot_title: dict = None, Get_Hot_Class=None, Write_Text_Class=None):
         """
         写作文章

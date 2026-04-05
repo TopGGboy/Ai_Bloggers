@@ -741,6 +741,7 @@ class MultiPlatformManager:
 
 # ==================== 测试代码 ====================
 if __name__ == '__main__':
+    from app.core.config_manager import config
     from app.Bloggers.ZhihuBlogger.Control import ZhihuAsyncControl
     from app.Bloggers.WeiboBlogger.Control import WeiboAsyncControl
     import warnings

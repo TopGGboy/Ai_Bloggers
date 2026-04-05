@@ -164,7 +164,7 @@ class InternetData:
                 client=self.client,
                 model=self.model_name,
                 system_prompt=SYSTEM_PROMPT,
-                temperature=0.7
+                temperature=0.5
             )
 
             return {"success": True, "message": "操作成功", "content": content}

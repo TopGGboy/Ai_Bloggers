@@ -5,7 +5,7 @@ from typing import Any, List, Dict, Tuple
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config  # 使用新的配置管理器
 
-MAX_NUM_TOKENS = 8192  # 生成响应的最大token数量，8K
+MAX_NUM_TOKENS = 8192  # 生成响应的最大token数量， 8k
 
 ALL_MODELS = [
     # deepseek模型
@@ -182,10 +182,13 @@ class LLM:
             msg_history: list[dict[str, Any]] | None = None,
             temperature: float = 0.7,
             tools: list[dict] | None = None,
-    ) -> tuple[str, list[dict[str, Any]]]:
+            max_retries: int = 3,
+    ):
         """
-        异步版本：调用大模型 API 获取响应内容
+        异步版本：调用大模型 API 获取响应内容（流式输出）
         """
+        import time
+
         content = None
         msg = user_prompt
         if msg_history is None:
@@ -196,46 +199,159 @@ class LLM:
         else:
             new_msg_history = msg_history
 
-        try:
-            if "deepseek" in model:
-                api_params = {
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        *new_msg_history,
-                    ],
-                    "temperature": temperature,
-                    "max_tokens": MAX_NUM_TOKENS,
-                    "n": 1,
-                }
+        # 构建请求参数（重试时复用）
+        if "deepseek" in model:
+            api_params = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    *new_msg_history,
+                ],
+                "temperature": temperature,
+                "max_tokens": MAX_NUM_TOKENS,
+                "n": 1,
+                "stream": True,
+            }
 
-                if tools:
-                    api_params["tools"] = tools
+            if tools:
+                api_params["tools"] = tools
 
-                # 【关键修改】使用异步 API 调用
-                response = await client.chat.completions.create(**api_params)
-                content = response.choices[0].message.content
-                new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                self.log.debug(
+                    f"[LLM] 流式请求开始 (第{attempt + 1}/{max_retries}次)，消息数: {len(new_msg_history)}，has_tools: {tools is not None}")
 
-                # 修改后：
-                if hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
-                    new_msg_history[-1]["tool_calls"] = [
-                        {
-                            "id": tc.id,
-                            "type": tc.type,
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments
-                            }
-                        }
-                        for tc in response.choices[0].message.tool_calls
-                    ]
+                # 流式接收
+                content_parts = []
+                tool_calls_chunks = {}
 
-        except Exception as e:
-            self.log.error(f"调用大模型 API 时出错：{e}")
-            raise e
+                async with await client.chat.completions.create(**api_params) as response:
+                    async for chunk in response:
+                        if not chunk.choices:
+                            continue
+                        delta = chunk.choices[0].delta
 
-        return content, new_msg_history
+                        if delta.content:
+                            content_parts.append(delta.content)
+
+                        if delta.tool_calls:
+                            for tc in delta.tool_calls:
+                                idx = tc.index
+                                if idx not in tool_calls_chunks:
+                                    tool_calls_chunks[idx] = {"id": "", "type": "function",
+                                                              "function": {"name": "", "arguments": ""}}
+                                if tc.id:
+                                    tool_calls_chunks[idx]["id"] = tc.id
+                                if tc.type:
+                                    tool_calls_chunks[idx]["type"] = tc.type
+                                if tc.function:
+                                    if tc.function.name:
+                                        tool_calls_chunks[idx]["function"]["name"] += tc.function.name
+                                    if tc.function.arguments:
+                                        tool_calls_chunks[idx]["function"]["arguments"] += tc.function.arguments
+
+                content = "".join(content_parts) if content_parts else None
+
+                # 组装 assistant 消息
+                assistant_msg = {"role": "assistant", "content": content}
+
+                if tool_calls_chunks:
+                    tool_names = [tool_calls_chunks[i]["function"]["name"] for i in sorted(tool_calls_chunks)]
+                    self.log.info(f"[LLM] 收到 tool_calls: {tool_names}")
+                    assistant_msg["tool_calls"] = [tool_calls_chunks[i] for i in sorted(tool_calls_chunks)]
+                else:
+                    self.log.info(f"[LLM] 收到文本回复，长度: {len(content) if content else 0}")
+
+                new_msg_history = new_msg_history + [assistant_msg]
+                return content, new_msg_history  # 成功则直接返回
+
+            except (openai.APIConnectionError, openai.APITimeoutError) as e:
+                last_error = e
+                retry_count = max_retries - attempt - 1
+                if retry_count > 0:
+                    wait_time = 2 ** attempt + 1  # 1s, 3s, 7s
+                    self.log.warning(f"[LLM] 连接错误: {e}，{wait_time}秒后重试 (剩余{retry_count}次)")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.log.error(f"[LLM] 达到最大重试次数 {max_retries}，放弃")
+
+            except Exception as e:
+                self.log.error(f"[LLM] 调用大模型 API 时出错：{e}")
+                raise e
+
+        # 所有重试都失败
+        raise last_error
+
+    # async def get_response_from_llm_async(
+    #         self,
+    #         user_prompt: str | None,
+    #         client: Any,
+    #         model: str,
+    #         system_prompt: str,
+    #         print_debug: bool = False,
+    #         msg_history: list[dict[str, Any]] | None = None,
+    #         temperature: float = 0.7,
+    #         tools: list[dict] | None = None,
+    # ) -> tuple[str, list[dict[str, Any]]]:
+    #     """
+    #     异步版本：调用大模型 API 获取响应内容
+    #     """
+    #     content = None
+    #     msg = user_prompt
+    #     if msg_history is None:
+    #         msg_history = []
+    #
+    #     if msg and msg.strip():
+    #         new_msg_history = msg_history + [{"role": "user", "content": msg}]
+    #     else:
+    #         new_msg_history = msg_history
+    #
+    #     try:
+    #         if "deepseek" in model:
+    #             api_params = {
+    #                 "model": model,
+    #                 "messages": [
+    #                     {"role": "system", "content": system_prompt},
+    #                     *new_msg_history,
+    #                 ],
+    #                 "temperature": temperature,
+    #                 "max_tokens": MAX_NUM_TOKENS,
+    #                 "n": 1,
+    #             }
+    #
+    #             if tools:
+    #                 api_params["tools"] = tools
+    #
+    #             # 【关键修改】使用异步 API 调用 + 超时控制
+    #             self.log.debug(f"[LLM] 异步请求开始，消息数: {len(new_msg_history)}，has_tools: {tools is not None}")
+    #             response = await client.chat.completions.create(**api_params)
+    #             content = response.choices[0].message.content
+    #             new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+    #
+    #             # 修改后：
+    #             if hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
+    #                 tool_names = [tc.function.name for tc in response.choices[0].message.tool_calls]
+    #                 self.log.info(f"[LLM] 收到 tool_calls: {tool_names}")
+    #                 new_msg_history[-1]["tool_calls"] = [
+    #                     {
+    #                         "id": tc.id,
+    #                         "type": tc.type,
+    #                         "function": {
+    #                             "name": tc.function.name,
+    #                             "arguments": tc.function.arguments
+    #                         }
+    #                     }
+    #                     for tc in response.choices[0].message.tool_calls
+    #                 ]
+    #             else:
+    #                 self.log.info(f"[LLM] 收到文本回复，长度: {len(content) if content else 0}")
+    #
+    #     except Exception as e:
+    #         self.log.error(f"调用大模型 API 时出错：{e}")
+    #         raise e
+    #
+    #     return content, new_msg_history
 
 
 def extract_json_between_markers(llm_output: str) -> dict | None:

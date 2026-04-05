@@ -170,11 +170,13 @@ class BaseMonitor(ABC):
             # 如果没有传入标题且文件不存在，创建文件
             elif not self.hot_titles:
                 self.hot_titles = []
+                os.makedirs(os.path.dirname(hot_titles_file), exist_ok=True)
                 with open(hot_titles_file, "w", encoding="utf-8") as f:
                     json.dump([], f, ensure_ascii=False, indent=4)
 
             # 保存热榜标题到文件
             if self.hot_titles:
+                os.makedirs(os.path.dirname(hot_titles_file), exist_ok=True)
                 with open(hot_titles_file, 'w', encoding='utf-8') as f:
                     json.dump(self.hot_titles, f, ensure_ascii=False, indent=4)
                 self.log.info(f"保存热榜标题成功，共 {len(self.hot_titles)} 个标题")
