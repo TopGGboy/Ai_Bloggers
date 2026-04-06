@@ -1,7 +1,6 @@
 from playwright.async_api import BrowserContext
 
 from app.Bloggers.BaseMonitor import BaseMonitor
-from app.core.config_manager import config
 
 
 class ZhihuMonitor(BaseMonitor):
@@ -17,7 +16,6 @@ class ZhihuMonitor(BaseMonitor):
         super().__init__(platform_name="zhihu", context=context)
         self.Zhihu_GetHot = None
 
-
     async def init(self) -> None:
         """初始化监控器（不创建新 page，使用已有的 page）"""
         try:
@@ -26,7 +24,7 @@ class ZhihuMonitor(BaseMonitor):
                 raise ValueError("page 必须在使用前初始化")
 
             # 初始化获取热榜组件
-            from app.Bloggers.ZhihuBlogger.module.GetHot import AsyncZhihuGetHot
+            from app.Bloggers.ZhihuBlogger.scraping.GetHot import AsyncZhihuGetHot
             self.Zhihu_GetHot = AsyncZhihuGetHot(page=self.page)
 
             self.log.info("知乎监控器初始化成功")

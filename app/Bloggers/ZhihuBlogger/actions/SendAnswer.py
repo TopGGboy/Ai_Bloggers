@@ -14,7 +14,6 @@ class AsyncZhihuSendAnswer(BaseSendEssay):
         """
         super().__init__(platform_name="zhihu", page=page)
 
-
         self.update = False
 
     async def __to_hot_item(self, href):
@@ -102,7 +101,7 @@ class AsyncZhihuSendAnswer(BaseSendEssay):
             print(f"回答提交失败：{e}")
             self.log.error(f"回答提交失败：{e}")
 
-    async def send_essay(self, href: str, file_path: str):
+    async def send_essay(self, data: dict[str, Any]):
         """
         执行完整的回答流程：
         1. 进入指定热榜条目
@@ -110,9 +109,13 @@ class AsyncZhihuSendAnswer(BaseSendEssay):
         3. 编辑并提交回答
         4. 返回主页面
 
-        :param href: 热榜条目链接
-        :param file_path: 要上传的 Markdown 文件路径
+        :param data: 内容字典，包含 href, md_path 等
         """
+        # 热榜条目链接
+        href = data["href"]
+        # 要上传的 Markdown 文件路径
+        file_path = data["md_path"]
+
         await self.__to_hot_item(href)
 
         await self.__process_answer_state()
@@ -132,8 +135,8 @@ async def test_zhihu_answer_bot():
         browser, context, page = await driver.launch_browser(viewport_type="pc")
 
         sendessay = AsyncSendEssay(page)
-        await sendessay.send_essay(href="https://www.zhihu.com/question/2011788981294081499",
-                                   file_path=r"/Md/example_1.md")
+        await sendessay.send_essay({"md_path": r"/Md/example_1.md",
+                                    "href": "https://www.zhihu.com/question/2011788981294081499"})
 
 
 if __name__ == '__main__':

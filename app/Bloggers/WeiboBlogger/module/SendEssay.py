@@ -38,7 +38,6 @@ class AsyncWeiboSendEssay(BaseSendEssay):
                 self.page.get_by_placeholder("请输入标题"), content["title"]
             )
 
-
             await self.waiter.safe_fill_locator(
                 self.page.get_by_placeholder("导语（选填）"), content["summary"]
             )
@@ -116,7 +115,7 @@ async def test_weibo_send_essay():
         page = await content.new_page()
 
         send_essay = AsyncWeiboSendEssay(page)
-        await send_essay.send_essay()
+        await send_essay.send_essay(content={"title": "测试标题", "content": "测试内容", "summary": "测试摘要语"})
 
 
 if __name__ == '__main__':

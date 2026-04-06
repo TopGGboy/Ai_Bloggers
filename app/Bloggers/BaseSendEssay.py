@@ -21,6 +21,6 @@ class BaseSendEssay(ABC):
         self.element_timeout = config.platforms[platform_name]["element_timeout"]
 
     @abstractmethod
-    async def send_essay(self, file_path: str, href: str):
+    async def send_essay(self, *args, **kwargs):
         """发送文章"""
         pass
