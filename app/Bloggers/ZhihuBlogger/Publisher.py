@@ -1,15 +1,8 @@
 import os
 from typing import Dict, Any, Optional
-from enum import Enum
-
 from playwright.async_api import BrowserContext
 from app.Bloggers.BasePublisher import BasePublisher
-
-
-class ZhihuPublishType(Enum):
-    """知乎发布类型枚举"""
-    ANSWER = "answer"
-    ARTICLE = "article"
+from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
 
 
 class ZhihuPublisher(BasePublisher):
@@ -23,7 +16,6 @@ class ZhihuPublisher(BasePublisher):
             context: Playwright BrowserContext 实例
             publish_type: 发布类型（回答/文章）
         """
-
         super().__init__(platform_name="zhihu", context=context)
         self.publish_type = publish_type
 

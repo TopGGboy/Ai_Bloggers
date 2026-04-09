@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
 import asyncio
 from playwright.async_api import Page, Locator
 from app.core.config_manager import config
@@ -13,13 +13,24 @@ class AsyncWeiboSendEssay(BaseSendEssay):
         :param page: Playwright Page 实例
         """
         super().__init__(platform_name="weibo", page=page)
-        self.url = r"https://card.weibo.com/article/v5/editor#/draft"
+
         self.update = False
 
-    async def send_essay(self, content: dict = None, href: str = None):
+    async def send_essay(self, data: dict[str, Any]):
         """发送微博"""
         try:
+            title = data["title"]
+            content = data["content"]
+            image_path = data["image_path"]
+            summary = data.get("summary", None)
 
+            await self.__run(title, content, image_path, summary)
+        except Exception as e:
+            self.log.error(f"发送微博失败：{e}")
+
+    async def __run(self, title: str, content: str, image_path: str, summary: str = None):
+        """运行微博发文流程"""
+        try:
             await self.page.goto(self.url)
 
             # 0. 点击写文章(新建一个文章，避免编辑已有文章)
@@ -30,16 +41,16 @@ class AsyncWeiboSendEssay(BaseSendEssay):
             await asyncio.sleep(10)  # 等待页面加载完成
 
             await self.waiter.safe_fill_locator(
-                self.page.locator(".tiptap"), content["content"]
+                self.page.locator(".tiptap"), content
             )
 
             # 2. 输入标题
             await self.waiter.safe_fill_locator(
-                self.page.get_by_placeholder("请输入标题"), content["title"]
+                self.page.get_by_placeholder("请输入标题"), title
             )
 
             await self.waiter.safe_fill_locator(
-                self.page.get_by_placeholder("导语（选填）"), content["summary"]
+                self.page.get_by_placeholder("导语（选填）"), summary
             )
 
             # 4. 设置文章封面
@@ -53,9 +64,6 @@ class AsyncWeiboSendEssay(BaseSendEssay):
                 condition="attached",
                 timeout=self.element_timeout
             )
-
-            # TODO: 需要生成图片
-            image_path = r"/Md/92917c72e24c4702bee6558f288ef959.png"
 
             if upload_input:
                 await upload_input.set_input_files(image_path)
@@ -89,14 +97,11 @@ class AsyncWeiboSendEssay(BaseSendEssay):
 
             # 10. 点击发布
             await self.waiter.safe_click_locator(self.page.get_by_role("button", name="发布"))
+            self.log.info("✅ 微博发布成功")
+            return True
         except Exception as e:
-            self.log.error(f"发送微博失败：{e}")
-
-    async def __get_essay_content(self, file_path: str):
-        """获取文档内容"""
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return content
+            self.log.error(f"微博微博失败：{e}")
+            return False
 
 
 async def test_weibo_send_essay():

@@ -20,6 +20,7 @@ platforms:
     login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
     user_name: "13939826475"
     password: "@@3085678256Gzj."
+    check_interval: 600  # 监控间隔，秒数
     login_timeout: 60000  # 登录超时时间，单位毫秒
     element_timeout: 3000  # 元素等待超时时间，单位毫秒
 
@@ -31,6 +32,8 @@ platforms:
     urls:
       hot_list: "https://www.zhihu.com/hot"
       login: "https://www.zhihu.com/signin?next=%2F"
+      write: "https://zhuanlan.zhihu.com/write"
+
 
     # 文件路径设置
     paths:
@@ -45,6 +48,7 @@ platforms:
     login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
     user_name: "13939826475"
     password: "@@3085678256Gzj."
+    check_interval: 600  # 监控间隔，秒数
     login_timeout: 60000  # 登录超时时间，单位毫秒
     element_timeout: 3000  # 元素等待超时时间，单位毫秒
 
@@ -55,6 +59,8 @@ platforms:
     urls:
       hot_list: "https://weibo.com/hot/search"
       login: "https://passport.weibo.com/sso/signin"
+      send_essay: "https://card.weibo.com/article/v5/editor#/draft"
+
 
     paths:
       hot_title_file: "D:/pythonproject/Ai_Blogger/Data/weibo_hot_titles.json"  # 热门标题文件

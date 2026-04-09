@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
 import asyncio
 from playwright.async_api import Page, Locator
 from app.core.config_manager import config

@@ -17,7 +17,10 @@ class BaseSendEssay(ABC):
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             f"{self.__class__.__name__}.SendEssay")
 
-        self.url = config.platforms[platform_name]["urls"].get("hot_list")
+        if platform_name == "zhihu":
+            self.url = config.platforms[platform_name]["urls"].get("hot_list")
+        elif platform_name == "weibo":
+            self.url = config.platforms[platform_name]["urls"].get("send_essay")
         self.element_timeout = config.platforms[platform_name]["element_timeout"]
 
     @abstractmethod

@@ -10,6 +10,7 @@ from app.core.PlaywrightDriver import AsyncPlaywrightDriver
 from app.Bloggers.BasePlatform import BasePlatform
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
+from app.Bloggers.BasePlatform import PlatformMode
 
 # ==================== 常量定义 ====================
 DEFAULT_MONITOR_INTERVAL = 600  # 默认监控间隔（秒）
@@ -19,18 +20,12 @@ DEFAULT_MAX_RETRIES = 2  # 默认最大重试次数
 DEFAULT_SLEEP_MIN = 2  # 默认随机睡眠最小值（秒）
 DEFAULT_SLEEP_MAX = 5  # 默认随机睡眠最大值（秒）
 
-# ==================== 常量定义 ====================
-# 平台运行模式常量
-PLATFORM_MODE_MONITOR_ONLY = "monitor_only"  # 只监控
-PLATFORM_MODE_PUBLISH_ONLY = "publish_only"  # 只发布
-PLATFORM_MODE_MONITOR_AND_PUBLISH = "monitor_and_publish"  # 监控并发布
-
 
 # ==================== 数据类 ====================
 class PlatformInfo:
     """平台信息封装"""
 
-    def __init__(self, name: str, instance: BasePlatform, mode: str = PLATFORM_MODE_MONITOR_AND_PUBLISH):
+    def __init__(self, name: str, instance: BasePlatform, mode: PlatformMode = PlatformMode.MONITOR_AND_PUBLISH):
         self.name = name
         self.instance = instance
         self.mode = mode
@@ -40,7 +35,7 @@ class PlatformInfo:
     def to_dict(self) -> Dict[str, Any]:
         return {
             'name': self.name,
-            'mode': self.mode,
+            'mode': self.mode.value,
             'registered_at': self.registered_at.isoformat(),
             'last_activity': self.last_activity.isoformat()
         }
@@ -186,7 +181,8 @@ class MultiPlatformManager:
                                 user_data_dir: str,
                                 viewport_type: str = "pc",
                                 custom_ua: Optional[str] = None,
-                                mode: str = PLATFORM_MODE_MONITOR_AND_PUBLISH,
+                                mode: PlatformMode = PlatformMode.MONITOR_AND_PUBLISH,
+                                publish_type: Any = None,
                                 save_config: bool = True,
                                 **kwargs: Any) -> None:
         """
@@ -199,6 +195,7 @@ class MultiPlatformManager:
             viewport_type: 视图类型
             custom_ua: 自定义 UA
             mode: 运行模式
+            publish_type: 发布类型，用于所有平台
             save_config: 是否保存配置
         """
         try:
@@ -215,8 +212,8 @@ class MultiPlatformManager:
             )
 
             # 传入运行模式
-            platform_instance = platform_class(context=context, md_path=self.md_path, mode=mode,
-                                               user_data_dir=str(platform_data_path))
+            platform_instance = platform_class(context=context, mode=mode,
+                                               user_data_dir=str(platform_data_path), publish_type=publish_type)
 
             # 使用 PlatformInfo 包装
             self.platforms[platform_name] = PlatformInfo(
@@ -282,7 +279,7 @@ class MultiPlatformManager:
         # 过滤出支持发布的平台
         publishable_platforms = {
             name: info for name, info in self.platforms.items()
-            if info.mode in (PLATFORM_MODE_PUBLISH_ONLY, PLATFORM_MODE_MONITOR_AND_PUBLISH)
+            if info.mode in (PlatformMode.PUBLISH_ONLY, PlatformMode.MONITOR_AND_PUBLISH)
         }
 
         if not publishable_platforms:
@@ -382,7 +379,7 @@ class MultiPlatformManager:
         platform_info = self.platforms[platform_name]
 
         # 检查平台模式
-        if platform_info.mode == PLATFORM_MODE_PUBLISH_ONLY:
+        if platform_info.mode == PlatformMode.PUBLISH_ONLY:
             self.log.error(f"平台 {platform_name} 处于只发布模式，不支持监控")
             return False
 
@@ -391,10 +388,6 @@ class MultiPlatformManager:
             return False
 
         platform = platform_info.instance
-
-        if not hasattr(platform, 'run_monitor'):
-            self.log.error(f"平台 {platform_name} 不支持监控功能")
-            return False
 
         try:
             self.running_monitors[platform_name] = True
@@ -424,7 +417,7 @@ class MultiPlatformManager:
 
                 # 【关键修改】调用平台的 run() 方法，让它根据模式自行处理
                 # 注意：run() 方法内部会自己循环，所以这里不需要 while 循环
-                await platform.run(check_interval=interval)
+                await platform.run()
 
                 end_time = datetime.now()
                 duration = (end_time - start_time).total_seconds()
@@ -744,6 +737,9 @@ if __name__ == '__main__':
     from app.core.config_manager import config
     from app.Bloggers.ZhihuBlogger.Control import ZhihuAsyncControl
     from app.Bloggers.WeiboBlogger.Control import WeiboAsyncControl
+    from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
+    from app.Bloggers.WeiboBlogger.enums import WeiboPublishType
+
     import warnings
     import sys
     import signal
@@ -796,28 +792,30 @@ if __name__ == '__main__':
                 platform_name='weibo',
                 platform_class=WeiboAsyncControl,
                 user_data_dir='weibo_data',
-                mode=PLATFORM_MODE_MONITOR_AND_PUBLISH,  # 新增参数
-                save_config=True
+                mode=PlatformMode.MONITOR_AND_PUBLISH,  # 新增参数
+                save_config=True,
+                publish_type=WeiboPublishType.ESSAY
             )
             await check_exit()
 
-            # 注册知乎平台
-            await manager.register_platform(
-                platform_name='zhihu',
-                platform_class=ZhihuAsyncControl,
-                user_data_dir='zhihu_data',
-                mode=PLATFORM_MODE_MONITOR_AND_PUBLISH,
-                save_config=True
-            )
-            await check_exit()
+            # # 注册知乎平台
+            # await manager.register_platform(
+            #     platform_name='zhihu',
+            #     platform_class=ZhihuAsyncControl,
+            #     user_data_dir='zhihu_data',
+            #     mode=PlatformMode.MONITOR_AND_PUBLISH,
+            #     save_config=True,
+            #     publish_type=ZhihuPublishType.ANSWER
+            # )
+            # await check_exit()
 
             # 启动微博监控
             await manager.start_monitor('weibo', interval=DEFAULT_MONITOR_INTERVAL)
             await check_exit()
 
-            # ========== 新增：启动知乎监控 ==========
-            await manager.start_monitor('zhihu', interval=DEFAULT_MONITOR_INTERVAL)
-            await check_exit()
+            # # # ========== 新增：启动知乎监控 ==========
+            # await manager.start_monitor('zhihu', interval=DEFAULT_MONITOR_INTERVAL)
+            # await check_exit()
 
             # 打印平台信息
             print("\n📊 平台信息:")

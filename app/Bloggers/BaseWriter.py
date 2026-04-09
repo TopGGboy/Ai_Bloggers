@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 
 from abc import ABC, abstractmethod
 from app.core.config_manager import config
@@ -52,6 +53,7 @@ class BaseWriter(ABC):
             return md_path, json_data
         except Exception as e:
             self.log.error(f"写作文章失败: {e}")
+            return None, None
 
     def _sanitize_filename(self, title: str) -> str:
         """清理标题中的特殊字符，使其适合作为文件名"""
@@ -78,6 +80,9 @@ class BaseWriter(ABC):
             original_title: 原始标题（用于 JSON 内容）
         """
         try:
+            # 确保目录存在
+            os.makedirs(self.file_md_path, exist_ok=True)
+
             # 保存为 MD 文件
             md_path = os.path.join(self.file_md_path, f"{sanitized_title}.md")
             self.str_2_md.save_2_md(content, md_path)
@@ -94,9 +99,9 @@ class BaseWriter(ABC):
 
             return md_path, json_data
 
-
         except Exception as e:
-            self.log.error(f"保存文件失败：{e}")
+            self.log.error(f"保存文件失败：{e}", exc_info=True)
+            return None, None
 
     async def _append_to_json(self, data: dict):
         """

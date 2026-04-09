@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
 import asyncio
 from playwright.async_api import Page, Locator
 from app.core.config_manager import config
@@ -38,7 +38,7 @@ class AsyncZhihuSendArticle(BaseSendEssay):
             image_path = data.get("image_path", None)
 
             # 1. 进入 https://zhuanlan.zhihu.com/write
-            self.url = "https://zhuanlan.zhihu.com/write"
+            self.url = config.platforms["zhihu"]["urls"].get("write")
             await self.page.goto(self.url)
             await self.__run(title, md_path, image_path)
             return True

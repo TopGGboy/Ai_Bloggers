@@ -1,10 +1,6 @@
-import json
-import os
-import asyncio
-from typing import Optional, List, Callable
+from typing import Any
 
-from playwright.async_api import Page, BrowserContext
-from app.core.config_manager import config
+from playwright.async_api import BrowserContext
 
 from app.Bloggers.BaseMonitor import BaseMonitor
 
@@ -19,21 +15,14 @@ class WeiboMonitor(BaseMonitor):
         :param context: Playwright BrowserContext 实例
         """
         super().__init__(platform_name="weibo", context=context)
-        self.Weibo_GetHot = None
 
-    async def init(self) -> None:
-        """初始化监控器（不创建新 page，使用已有的 page）"""
-        try:
-            if not self.page:
-                self.log.error("页面未初始化")
-                raise ValueError("page 必须在使用前初始化")
+    async def _init_get_hot_component(self) -> Any:
+        """初始化微博热榜获取组件"""
+        from app.Bloggers.WeiboBlogger.scraping.GetHot import AsyncWeiboGetHot
+        return AsyncWeiboGetHot(page=self.page)
 
-            # 初始化获取热榜组件
-            from app.Bloggers.WeiboBlogger.module.GetHot import AsyncWeiboGetHot
-            self.Weibo_GetHot = AsyncWeiboGetHot(page=self.page)
-
-            self.log.info("微博监控器初始化成功")
-
-        except Exception as e:
-            self.log.error(f"微博监控器初始化失败：{e}", exc_info=True)
-            raise
+    async def _navigate_to_hot_page(self) -> None:
+        """导航到微博热榜页面"""
+        self.log.info(f"🌐 正在导航到微博热榜页面...")
+        await self.page.goto(self.hot_url, wait_until="domcontentloaded")
+        await self.random_sleep(2, 4)
