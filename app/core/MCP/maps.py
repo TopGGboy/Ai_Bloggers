@@ -37,10 +37,56 @@ GetInternetData = {
     }
 }
 
+# 新增工具：create_image
+CreateImage = {
+    "type": "function",
+    "function": {
+        "name": "create_image",
+        "description": "根据文本描述生成AI图片，支持指定尺寸和负面提示词。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": "图片的文本描述/提示词，用于描述想要生成的图像内容"
+                },
+                "size": {
+                    "type": "string",
+                    "description": "图片尺寸，例如 '1664x928'（横版）、'928x1664'（竖版）、'1024x1024'（方形）等",
+                    "default": "1664x928"
+                },
+                "negative_prompt": {
+                    "type": "string",
+                    "description": "负面提示词，描述不希望在图片中出现的内容",
+                    "default": ""
+                }
+            },
+            "required": ["prompt"]
+        },
+        "return": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "description": "是否成功生成图片"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "操作结果的消息描述，包含成功或失败原因"
+                },
+                "image_url": {
+                    "type": "string",
+                    "description": "生成图片的URL地址，失败时为空字符串"
+                }
+            }
+        }
+    }
+}
 # 工具映射
 ALL_TOOLS_MAP = {
-    "get_internet_data": "get_internet_data"
+    "get_internet_data": "get_internet_data",
+    "create_image": "create_image"
 }
 
 # 所有工具列表
-ALL_TOOLS = [GetInternetData]
+ALL_TOOLS = [GetInternetData, CreateImage]

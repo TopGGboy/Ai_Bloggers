@@ -28,6 +28,14 @@ platforms:
       name: "deepseek-chat"
       temperature: 0.7
 
+    tools:
+      get_internet_data:
+        enabled: true
+      create_image:
+        enabled: false
+        provider: "Qwen"
+        model_name: "qwen-image-2.0"
+        api_key: ""
 
     urls:
       hot_list: "https://www.zhihu.com/hot"

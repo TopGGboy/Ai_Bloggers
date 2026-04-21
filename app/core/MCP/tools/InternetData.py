@@ -189,6 +189,15 @@ class InternetData:
             result_data += f"## 第{index}篇:\n {summary}\n"
         return result_data
 
+    def get_function(self):
+        """
+       返回给 ToolRegistry 注册的异步函数
+
+       BaseTool 接口要求 —— 返回一个 callable，供 LLM 通过 tool_calls 调用。
+       这里选择返回异步版本，因为主流程都是 async 的。
+       """
+        return self.get_internet_data_async
+
 
 if __name__ == '__main__':
     llm = LLM()
