@@ -1,4 +1,9 @@
 # config.yaml
+# ── 注意 ──────────────────────────────────────────────
+# 敏感信息（API Key / 密码）请通过 .env 文件或系统环境变量配置。
+# 本文件中对应字段留空即可，程序会自动从环境变量读取。
+# 详见 .env.example 和 app/core/config_manager.py
+# ──────────────────────────────────────────────────────
 app:
   name: "Ai_Blogger"
   version: "1.0.0"
@@ -9,7 +14,7 @@ app:
 
 api:
   deepseek:
-    api_key: "sk-c5888f9dfebf4e3f97023dbf9eced41c"  # 支持环境变量引用
+    api_key: "${DEEPSEEK_API_KEY}"   # ← 从环境变量读取
     base_url: "https://api.deepseek.com"
     max_tokens: 1024
     timeout: 60
@@ -18,8 +23,8 @@ api:
 platforms:
   zhihu:
     login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
-    user_name: "13939826475"
-    password: "@@3085678256Gzj."
+    user_name: "${ZHIHU_USERNAME}"         # ← 从环境变量读取
+    password: "${ZHIHU_PASSWORD}"          # ← 从环境变量读取
     check_interval: 600  # 监控间隔，秒数
     login_timeout: 60000  # 登录超时时间，单位毫秒
     element_timeout: 3000  # 元素等待超时时间，单位毫秒
@@ -35,7 +40,7 @@ platforms:
         enabled: false
         provider: "Qwen"
         model_name: "qwen-image-2.0"
-        api_key: ""
+        api_key: "${QWEN_API_KEY}"         # ← 从环境变量读取
 
     urls:
       hot_list: "https://www.zhihu.com/hot"
@@ -54,8 +59,8 @@ platforms:
 
   weibo:
     login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
-    user_name: "13939826475"
-    password: "@@3085678256Gzj."
+    user_name: "${WEIBU_USERNAME}"          # ← 从环境变量读取
+    password: "${WEIBU_PASSWORD}"           # ← 从环境变量读取
     check_interval: 600  # 监控间隔，秒数
     login_timeout: 60000  # 登录超时时间，单位毫秒
     element_timeout: 3000  # 元素等待超时时间，单位毫秒

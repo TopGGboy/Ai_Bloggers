@@ -20,7 +20,7 @@ jsLibraryMappings.xml
 .idea/libraries/
 .idea/shelf/
 .idea/tasks/
-.idea/uiDesigner.xml
+idea/uiDesigner.xml
 .idea/inspectionProfiles/
 .idea/misc.xml
 .idea/sonarlint/
@@ -55,7 +55,7 @@ dist/
 *.egg-info/
 *.egg
 *.manifest
-*.spec
+.spec
 
 # Jupyter Notebook
 .ipynb_checkpoints/
@@ -86,9 +86,22 @@ $RECYCLE.BIN/
 # 其他编辑器
 *.swp
 *.swo
-*.sublime*
+.sublime*
 
-# 其他文件
+### === 项目专属规则 === ###
+
+# 🔒 敏感配置（绝对不能提交）
+.env
+.env.local
+.env.production
+*.local.env
+
+# 📁 运行时生成的数据
+Data/
+Log_File/
 driver/
+
+# 🧪 测试/临时文件
+my_test.py
 Md/
 t/

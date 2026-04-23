@@ -167,7 +167,7 @@ if __name__ == '__main__':
     ai_image = AiImage(
         provider="qwen",
         model_name="qwen-image-2.0",  # 正确的模型名
-        api_key="sk-86bb335287aa47d79f20196f982f6022"
+        api_key=""
     )
 
     # 生成图片
