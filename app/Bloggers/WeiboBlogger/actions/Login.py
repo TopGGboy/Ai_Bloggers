@@ -40,6 +40,9 @@ class AsyncWeiboLogin(BaseLogin):
     async def _login_by_username_and_password(self, username: str = None, password: str = None):
         """账号密码登录"""
         try:
+            # 得先进入登录界面
+            await self.page.goto(self.url)
+
             # 切换到账号密码登录
             await self.waiter.safe_click_locator(
                 self.page.get_by_role("link", name="账号登录")

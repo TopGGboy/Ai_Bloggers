@@ -47,7 +47,7 @@ SYSTEM_PROMPT = """
 
 
 class WriteWeiboText(BaseWriteText):
-    def __init__(self, model_name="deepseek-chat"):
+    def __init__(self):
         """
         初始化微博文章写作器
 
@@ -55,9 +55,9 @@ class WriteWeiboText(BaseWriteText):
             model_name (str): 使用的大模型名称，默认为 deepseek-chat
         """
         super().__init__(platform_name="weibo")
-        self.model_name = model_name
+
         self.llm = LLM()
-        self.client = self.llm.create_async_client(model_name)  # 用于异步生成
+        self.client = self.llm.create_async_client(self.model_name)  # 用于异步生成
         self.mcp_integration = MCPIntegration()
 
     async def write_hot_text_async(self, hot_title: str, hot_text_content: list, question_head: str):
@@ -89,7 +89,7 @@ class WriteWeiboText(BaseWriteText):
             client=self.client,
             model=self.model_name,
             system_prompt=SYSTEM_PROMPT,
-            temperature=0.7
+            temperature=self.temperature
         )
 
         # 解析json

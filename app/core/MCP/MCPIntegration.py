@@ -324,26 +324,17 @@ class MCPIntegration:
 
                 self.log.info(f"[MCP] 执行工具 [{idx + 1}]: {tool_name}，参数: {arguments}")
 
-                # 检查工具函数是否是异步的
-                tool_func = self.tool_functions.get(tool_name)
-                if tool_func and asyncio.iscoroutinefunction(tool_func):
-                    # 异步工具 + 超时
+                try:
                     tool_result = await asyncio.wait_for(
-                        tool_func(**arguments),
+                        self.tool_functions[tool_name](**arguments),
                         timeout=600  # 单个工具最多执行 60 秒
                     )
-                else:
-                    # 同步工具（在后台线程中执行，避免阻塞）+ 超时
-                    import concurrent.futures
-                    loop = asyncio.get_event_loop()
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        tool_result = await asyncio.wait_for(
-                            loop.run_in_executor(
-                                executor,
-                                lambda: tool_func(**arguments) if tool_func else f"未知的工具：{tool_name}"
-                            ),
-                            timeout=60  # 单个工具最多执行 60 秒
-                        )
+                except asyncio.TimeoutError:
+                    self.log.error(f"[MCP] 工具 {tool_name} 执行超时（600秒）")
+                    tool_result = {"success": False, "message": "工具执行超时", "content": ""}
+                except Exception as e:
+                    self.log.error(f"[MCP] 工具 {tool_name} 执行异常: {str(e)}")
+                    tool_result = {"success": False, "message": f"工具执行异常: {str(e)}", "content": ""}
 
                 # 截断过长的工具结果日志
                 result_preview = str(tool_result)[:200] if tool_result else "(空)"

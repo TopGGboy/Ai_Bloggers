@@ -37,7 +37,7 @@ platforms:
       get_internet_data:
         enabled: true
       create_image:
-        enabled: false
+        enabled: true
         provider: "Qwen"
         model_name: "qwen-image-2.0"
         api_key: "${QWEN_API_KEY}"         # ← 从环境变量读取
@@ -68,6 +68,15 @@ platforms:
     model:
       name: "deepseek-chat"
       temperature: 0.7
+
+    tools:
+      get_internet_data:
+        enabled: true
+      create_image:
+        enabled: false
+        provider: "Qwen"
+        model_name: "qwen-image-2.0"
+        api_key: "${QWEN_API_KEY}"         # ← 从环境变量读取
 
     urls:
       hot_list: "https://weibo.com/hot/search"

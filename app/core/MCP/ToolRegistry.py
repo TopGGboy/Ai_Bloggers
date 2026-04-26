@@ -6,7 +6,7 @@
   - 不同平台可启用/禁用不同工具、使用不同参数
   - 新增工具只需：(1)写工具类 (2)maps.py加Schema (3)ToolMetaRegistry注册 (4)YAML配置
 """
-
+import asyncio
 import inspect
 from typing import Dict, Callable, Any
 
@@ -45,6 +45,7 @@ class LazyToolProxy:
         self._instance: Any = None  # 缓存的实例
         self._real_func: Callable = None  # 缓存的函数引用
         self._initialized = False
+        self._is_async = False  # 【新增】标记是否为异步函数
 
     @property
     def is_initialized(self) -> bool:
@@ -57,12 +58,16 @@ class LazyToolProxy:
             kwargs = self._build_kwargs_fn()
             self._instance = self._tool_cls(**kwargs)
             self._real_func = self._instance.get_function()
+            self._is_async = asyncio.iscoroutinefunction(self._real_func)
             self._initialized = True
 
-    def __call__(self, *args, **kwargs):
+    async def __call__(self, *args, **kwargs):
         """代理调用 —— 首次调用时自动初始化，之后直接转发"""
         self._ensure_initialized()
-        return self._real_func(*args, **kwargs)
+        if self._is_async:
+            return await self._real_func(*args, **kwargs)
+        else:
+            return self._real_func(*args, **kwargs)
 
     def get_real_instance(self) -> Any:
         """获取真实的工具实例（用于调试或直接操作）"""
@@ -106,7 +111,6 @@ class ToolRegistry:
         self.client = client
         self.model_name = model_name or self._extract_model_name(platform_config)
 
-
         # 输出结果
         self.tool_definitions: list[dict] = []
         # 注意：这里存的是 LazyToolProxy 对象，不是真实函数！
@@ -144,7 +148,6 @@ class ToolRegistry:
     def _extract_model_name(self, pf_config: dict) -> str | None:
         model_cfg = pf_config.get("model", {}) if pf_config else {}
         return model_cfg.get("name")
-
 
     def _register_tools(self):
         """根据 YAML 配置注册工具（enabled:false 的完全不处理）"""
@@ -186,7 +189,7 @@ class ToolRegistry:
                 tool_name=tool_name,
                 # 闭包延迟捕获 —— 首次 __call__ 时才执行
                 build_kwargs_fn=lambda _cls=tool_cls, _name=tool_name, _cfg=specific_cfg:
-                    self._build_kwargs(_cls, _name, _cfg),
+                self._build_kwargs(_cls, _name, _cfg),
             )
 
             self.tool_functions[tool_name] = proxy

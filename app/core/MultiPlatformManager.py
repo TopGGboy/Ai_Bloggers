@@ -945,17 +945,17 @@ if __name__ == '__main__':
 
             # 注册微博平台
             await manager.register_platform(
-                platform_name='weibo',
-                platform_class=WeiboAsyncControl,
-                user_data_dir='weibo_data',
+                platform_name='zhihu',
+                platform_class=ZhihuAsyncControl,
+                user_data_dir='zhihu_data',
                 mode=PlatformMode.MONITOR_AND_PUBLISH,
                 save_config=True,
-                publish_type=WeiboPublishType.ESSAY
+                publish_type=ZhihuPublishType.ANSWER
             )
             await check_exit()
 
             # 启动微博监控
-            await manager.start_monitor('weibo', interval=ManagerConfig.DEFAULT_MONITOR_INTERVAL)
+            await manager.start_monitor('zhihu', interval=ManagerConfig.DEFAULT_MONITOR_INTERVAL)
             await check_exit()
 
             # 打印平台信息

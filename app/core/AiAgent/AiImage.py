@@ -107,17 +107,32 @@ class AiImage:
         Returns:
             dict: 包含生成结果的字典
         """
-        # 如果指定了临时提供商，切换到该提供商
-        if provider and provider != self.current_provider:
-            original_provider = self.current_provider
-            original_model = self.model_name
-            self.switch_provider(provider, model_name, api_key)
-            result = self.provider_instance.generate_image(prompt, size, **kwargs)
-            # 恢复原提供商
-            self.switch_provider(original_provider, original_model)
-            return result
+        try:
+            # 如果指定了临时提供商，切换到该提供商
+            if provider and provider != self.current_provider:
+                original_provider = self.current_provider
+                original_model = self.model_name
+                self.switch_provider(provider, model_name, api_key)
+                result = self.provider_instance.generate_image(prompt, size, **kwargs)
+                # 恢复原提供商
+                self.switch_provider(original_provider, original_model)
+                return result
 
-        return self.provider_instance.generate_image(prompt=prompt, size=size, negative_prompt=negative_prompt, **kwargs)
+            result = self.provider_instance.generate_image(prompt=prompt, size=size, negative_prompt=negative_prompt,
+                                                           **kwargs)
+
+            return {
+                "success": True,
+                "message": "图片生成成功",
+                "image_url": result["image_url"],
+            }
+        except Exception as e:
+            self.log.error(f"图片生成失败: {e}")
+            return {
+                "success": False,
+                "message": f"图片生成失败: {e}",
+                "image_url": None,
+            }
 
     async def generate_image_async(
             self,
@@ -143,19 +158,34 @@ class AiImage:
         Returns:
             dict: 包含生成结果的字典
         """
-        # 提示词格式化
-        prompt = self._format_prompt(prompt)
+        try:
+            # 提示词格式化
+            prompt = self._format_prompt(prompt)
 
-        if provider and provider != self.current_provider:
-            original_provider = self.current_provider
-            original_model = self.model_name
-            self.switch_provider(provider, model_name, api_key)
-            result = await self.provider_instance.generate_image_async(prompt, size, **kwargs)
-            # 恢复原提供商
-            self.switch_provider(original_provider, original_model)
-            return result
+            if provider and provider != self.current_provider:
+                original_provider = self.current_provider
+                original_model = self.model_name
+                self.switch_provider(provider, model_name, api_key)
+                result = await self.provider_instance.generate_image_async(prompt, size, **kwargs)
+                # 恢复原提供商
+                self.switch_provider(original_provider, original_model)
+                return result
 
-        return await self.provider_instance.generate_image_async(prompt, size, **kwargs)
+            result = await self.provider_instance.generate_image_async(prompt=prompt, size=size,
+                                                                       negative_prompt=negative_prompt,
+                                                                       **kwargs)
+            return {
+                "success": True,
+                "message": "图片生成成功",
+                "image_url": result["image_url"],
+            }
+        except Exception as e:
+            self.log.error(f"图片生成失败: {e}")
+            return {
+                "success": False,
+                "message": f"图片生成失败: {e}",
+                "image_url": None,
+            }
 
     def get_available_providers(self) -> list:
         """获取可用的提供商列表"""

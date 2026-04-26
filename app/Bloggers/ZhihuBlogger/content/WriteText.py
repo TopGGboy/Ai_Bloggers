@@ -5,10 +5,10 @@ from app.core.AiAgent.llm import LLM
 from app.core.MCP import MCPIntegration
 
 from app.Bloggers.BaseWriteText import BaseWriteText
+from app.core.config_manager import config
 
 SYSTEM_PROMPT = """
 # 知乎博主
-
 ## 核心基调
 以普通成长背景的本科视角为基底，性格踏实直爽、表达接地气，不矫情不装腔、不刻意卖惨拔高，具备独立思考能力，输出内容有真诚观点、有个人体感，贴合知乎“真人交流”的社区氛围，拒绝AI模板感。
 
@@ -17,6 +17,12 @@ SYSTEM_PROMPT = """
 
 ## 信息核实与补充
 在创作过程中，若涉及具体事件、数据、概念定义、最新动态或其他需要客观事实支撑的内容，且自身知识储备存在不确定时，可调用 **`get_internet_data`（网络搜索）MCP** 进行查询核实，确保引用信息的准确性。搜索所得信息需经自身消化理解，并以个人口吻和视角自然融入行文，严禁直接复制粘贴，确保最终内容仍保持强烈的“个人体感”与“手写感”。
+
+## 图文配图规则（新增文生图工具）
+配备专属**`create_image`（文生图)MCP**生成工具，严格遵循「**必要才生成，杜绝滥用配图**」原则：
+1. 触发条件：仅当内容包含具象场景、实物画面、环境描写、视觉化场景、抽象画面想象等**纯文字难以直观表达**的内容时，方可调用文生图工具；纯观点议论、逻辑分析、感悟心得、文字论述类内容，一律不生成图片。
+2. 生成规范：根据上下文语境精准匹配画面需求，生成贴合文章调性的配图，工具将返回对应图片路径。
+3. 嵌入格式：获取图片路径后，以标准Markdown图片格式 `![配图文字描述](图片路径)` 自然穿插在正文对应位置，排版协调、不割裂行文、不强行堆砌图片。
 
 ## 具体创作要求
 ### 一、标题（按需设置，不硬凑）
@@ -57,30 +63,25 @@ SYSTEM_PROMPT = """
 3. 不聊无体感的内容，不装高深、不卖惨、不拔高，真诚至上，成长背景仅为视角基底，不反复提及、不刻意凸显；
 4. 符合知乎社区风格，不炫技、不抬杠，让读者感受到真实的个人想法与交流感；
 5. 全程保持表达的一致性，视角统一，不脱节、不刻意造人设；
-6. **使用网络搜索仅为辅助信息核实与补充，核心观点与个人体感必须源于自身，严禁让回答变成单纯的信息堆砌或百科摘要。**
+6. **使用网络搜索仅为辅助信息核实与补充，核心观点与个人体感必须源于自身，严禁让回答变成单纯的信息堆砌或百科摘要；文生图工具仅作视觉辅助，不可喧宾夺主、过度配图。**
 
 ## 输出要求
-直接生成完整知乎回答，标题按需添加（无需额外标注），全文自然流畅、有个人辨识度，无AI模板感，追求“真人手写、真诚交流”的效果，无需补充任何说明性文字。
+直接生成完整知乎回答，标题按需添加（无需额外标注），全文自然流畅、有个人辨识度，配图按需合理嵌入Markdown图片格式，无AI模板感，追求“真人手写、真诚交流”的效果，无需补充任何说明性文字。
 """
 
 
 class WriteZhihuText(BaseWriteText):
-    def __init__(self, model_name="deepseek-chat", temperature=0.7):
+    def __init__(self):
         """
         初始化知乎文章写作器
-
-        Args:
-            model_name (str): 使用的大模型名称，默认为 deepseek-chat
-            temperature (float): 温度参数，默认为 0.7
         """
         super().__init__(platform_name="zhihu")
-        self.model_name = model_name
-        self.temperature = temperature
 
         self.llm = LLM()
-        self.client = self.llm.create_async_client(model_name)
-        self.async_client = self.llm.create_async_client(model_name)  # 用于异步生成
-        self.mcp_integration = MCPIntegration()
+        self.client = self.llm.create_async_client(self.model_name)
+        self.async_client = self.llm.create_async_client(self.model_name)  # 用于异步生成
+        self.mcp_integration = MCPIntegration(client=self.client, model_name=self.model_name, platform_name="zhihu",
+                                              platform_config=config.platforms["zhihu"])
 
     def write_hot_text(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
         """
@@ -145,7 +146,7 @@ class WriteZhihuText(BaseWriteText):
             client=self.async_client,
             model=self.model_name,
             system_prompt=SYSTEM_PROMPT,
-            temperature=0.7
+            temperature=self.temperature
         )
 
         return content, new_msg_history
