@@ -211,6 +211,7 @@ class ToolRegistry:
             "client": self.client,
             "model_name": self.model_name,
             "_platform_config": self.platform_config,
+            "platform_name": self.platform_name,
             # 工具特定配置
             **(tool_config if isinstance(tool_config, dict) else {}),
         }

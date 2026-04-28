@@ -114,14 +114,14 @@ class ZhihuAsyncControl(BasePlatform):
             from app.Bloggers.ZhihuBlogger.content.WriteText import WriteZhihuText
 
             get_hot = AsyncZhihuGetHot(page=self.publish_page)
-            write_text = WriteZhihuText(model_name=self.publisher.model_name)
+            write_text = WriteZhihuText()
 
             # 2. 生成内容（使用 Writer）
             self.log.info(f"✍️ 正在生成内容...")
             md_path, json_data = await self.writer.write(
                 hot_title=hot_title,
-                Get_Hot_Class=get_hot,
-                Write_Text_Class=write_text
+                get_hot_instance=get_hot,
+                write_text_instance=write_text
             )
 
             if not md_path:

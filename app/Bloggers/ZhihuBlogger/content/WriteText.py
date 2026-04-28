@@ -1,7 +1,7 @@
 import json
 import os
 
-from app.core.AiAgent.llm import LLM
+from app.core.AiAgent.llm import LLM, extract_json_between_markers
 from app.core.MCP import MCPIntegration
 
 from app.Bloggers.BaseWriteText import BaseWriteText
@@ -23,6 +23,12 @@ SYSTEM_PROMPT = """
 1. 触发条件：仅当内容包含具象场景、实物画面、环境描写、视觉化场景、抽象画面想象等**纯文字难以直观表达**的内容时，方可调用文生图工具；纯观点议论、逻辑分析、感悟心得、文字论述类内容，一律不生成图片。
 2. 生成规范：根据上下文语境精准匹配画面需求，生成贴合文章调性的配图，工具将返回对应图片路径。
 3. 嵌入格式：获取图片路径后，以标准Markdown图片格式 `![配图文字描述](图片路径)` 自然穿插在正文对应位置，排版协调、不割裂行文、不强行堆砌图片。
+
+### 图片生成硬性总规则
+- 全文所有图片（文章封面 + 正文插图），仅允许使用专属 create_image（文生图）MCP 工具生成；
+- 严禁私自查找、引用、拼接、复制互联网图片、第三方图库、随机图源等外部图片资源；
+- 禁止手动编造图片链接、外部 cdn 地址、网络素材地址，无例外执行工具调用；
+- 图片按需生成，宁缺毋滥，杜绝无意义滥加配图。
 
 ## 具体创作要求
 ### 一、标题（按需设置，不硬凑）
@@ -66,7 +72,18 @@ SYSTEM_PROMPT = """
 6. **使用网络搜索仅为辅助信息核实与补充，核心观点与个人体感必须源于自身，严禁让回答变成单纯的信息堆砌或百科摘要；文生图工具仅作视觉辅助，不可喧宾夺主、过度配图。**
 
 ## 输出要求
-直接生成完整知乎回答，标题按需添加（无需额外标注），全文自然流畅、有个人辨识度，配图按需合理嵌入Markdown图片格式，无AI模板感，追求“真人手写、真诚交流”的效果，无需补充任何说明性文字。
+1. 仅返回纯标准JSON，不要任何解释、前言、后语、多余文字；
+2. 严格遵守下方字段规则与JSON结构，禁止增删字段、修改键名；
+
+字段要求:
+- title: 文章标题，知乎社区风格，包含话题核心关键词，写实不夸张、无误导。
+- content: 文章正文，全程使用排版美观、符合知乎阅读习惯的Markdown格式。
+
+```json
+{
+    "title": "",
+    "content": ""
+}
 """
 
 
@@ -117,7 +134,7 @@ class WriteZhihuText(BaseWriteText):
 
         return content, new_msg_history
 
-    async def write_hot_text_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
+    async def write_hot_text_async(self, hot_title: str, hot_content: list, question_head: str):
         """
         异步版本：根据热点话题创作知乎文章
 
@@ -125,9 +142,6 @@ class WriteZhihuText(BaseWriteText):
             hot_title (str): 热点话题标题
             hot_content (list): 热点话题详细内容
             question_head (str): 热点话题问题简介
-
-        Returns:
-            tuple: (生成的文章内容，消息历史记录)
         """
         hot_contents = ""
         for index, content in enumerate(hot_content):
@@ -148,6 +162,8 @@ class WriteZhihuText(BaseWriteText):
             system_prompt=SYSTEM_PROMPT,
             temperature=self.temperature
         )
+
+        content = extract_json_between_markers(content)
 
         return content, new_msg_history
 
@@ -189,7 +205,9 @@ if __name__ == '__main__':
 
     async def main():
         write_text = WriteZhihuText()
-        content, new_msg_history = await write_text.write_hot_text_async("梅姨被逮捕", ["梅姨被逮捕", "梅姨被逮捕"], "")
+        content, new_msg_history = await write_text.write_hot_text_async(
+            "男子从内地偷运 51 公斤盒饭回澳门，被海关查获，为啥要专门偷运盒饭？未经检疫的熟食入境会有什么风险？", ["", ""],
+            "")
         print(content)
 
 
