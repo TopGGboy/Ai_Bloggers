@@ -8,6 +8,7 @@ app:
   name: "Ai_Blogger"
   version: "1.0.0"
   logfile_path: "D:/pythonproject/Ai_Blogger/Log_File"
+  temp_path: "D:/pythonproject/Ai_Blogger/Data/temp"    # 临时文件路径
   log_level: "INFO"
   debug_mode: false
   max_workers: 4

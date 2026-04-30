@@ -28,6 +28,7 @@ class BasePublisher(ABC):
             self.__class__.__name__)
         # 配置项
         self.model_name = config.platforms[platform_name]["model"].get("name", "deepseek-chat")
+        self.temp_path = config.temp_path
 
         # 重试配置
         self.retry_config = {

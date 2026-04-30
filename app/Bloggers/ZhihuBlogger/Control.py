@@ -118,22 +118,17 @@ class ZhihuAsyncControl(BasePlatform):
 
             # 2. 生成内容（使用 Writer）
             self.log.info(f"✍️ 正在生成内容...")
-            md_path, json_data = await self.writer.write(
+            json_data = await self.writer.write(
                 hot_title=hot_title,
                 get_hot_instance=get_hot,
                 write_text_instance=write_text
             )
 
-            if not md_path:
-                self.log.error(f"❌ 内容生成失败：{hot_title['title']}")
-                return False
-
             # 3. 发布内容（使用 Publisher 的统一接口）
             self.log.info(f"📤 正在发布...")
             data = {
                 "href": hot_title.get("href", None),
-                "md_path": md_path,
-                "title": json_data.get("title", None)
+                "json_data": json_data
             }
             result = await self.publisher.publish(data)
 

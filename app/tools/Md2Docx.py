@@ -277,10 +277,10 @@ def parse_inline(paragraph, text: str, base_dir: str, defaults: dict = None):
 # ── 主转换器 ─────────────────────────────────────────────────────
 
 class MarkdownToDocx:
-    def __init__(self, md_path: str, docx_path: str):
-        self.md_path = Path(md_path)
-        self.docx_path = Path(docx_path)
-        self.base_dir = str(self.md_path.parent)
+    def __init__(self):
+        self.base_dir = None
+        self.md_path = None
+        self.docx_path = None
         self.doc = Document()
         self._setup_styles()
         # 列表深度追踪
@@ -306,8 +306,18 @@ class MarkdownToDocx:
                 hs.paragraph_format.space_after = Pt(6)
 
     # ── 解析入口 ──────────────────────────────────────────────────
-    def convert(self):
+    def convert(self, md_path: str, docx_path: str):
+        self.md_path = Path(md_path)
+        self.docx_path = Path(docx_path)
+        self.base_dir = str(self.md_path.parent)
+
         text = self.md_path.read_text(encoding="utf-8")
+        self._parse(text)
+        self.doc.save(str(self.docx_path))
+        print(f"✅ 转换完成：{self.docx_path}")
+
+    def md_text_to_docx(self, text: str, docx_path: str):
+        self.docx_path = Path(docx_path)
         self._parse(text)
         self.doc.save(str(self.docx_path))
         print(f"✅ 转换完成：{self.docx_path}")
@@ -547,36 +557,9 @@ class MarkdownToDocx:
 # ── CLI ──────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="将 Markdown 文件转换为 DOCX（支持图片、表格、列表、代码块等）"
-    )
-    parser.add_argument("inputs", nargs="+", help=".md 文件路径（支持多个）")
-    parser.add_argument("-o", "--output", default=None,
-                        help="输出文件或目录（单文件转换可直接指定 .docx 路径）")
-    args = parser.parse_args()
-
-    inputs = [Path(p) for p in args.inputs]
-    out = Path(args.output) if args.output else None
-
-    for md_path in inputs:
-        if not md_path.exists():
-            print(f"❌ 文件不存在：{md_path}", file=sys.stderr)
-            continue
-        if out is None or (len(inputs) == 1 and out and out.suffix == ".docx"):
-            docx_path = out if out else md_path.with_suffix(".docx")
-        else:
-            # 输出到目录
-            out.mkdir(parents=True, exist_ok=True)
-            docx_path = out / md_path.with_suffix(".docx").name
-
-        print(f"🔄 转换中：{md_path} → {docx_path}")
-        try:
-            converter = MarkdownToDocx(str(md_path), str(docx_path))
-            converter.convert()
-        except Exception as e:
-            print(f"❌ 转换失败：{e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
+    docx_path = Path("test.docx")
+    converter = MarkdownToDocx()
+    converter.md_text_to_docx("# 测试", str(docx_path))
 
 
 if __name__ == "__main__":

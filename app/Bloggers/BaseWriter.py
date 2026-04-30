@@ -53,16 +53,16 @@ class BaseWriter(ABC):
 
             # 统一保存为 MD 和 JSON 文件
             sanitized_title = self._sanitize_filename(hot_title['title'])
-            md_path, json_data = await self._save_content(
+            json_data = await self._save_content(
                 raw_content=raw_content,
                 sanitized_title=sanitized_title,
                 original_title=hot_title['title']
             )
 
-            return md_path, json_data
+            return json_data
         except Exception as e:
             self.log.error(f"写作文章失败: {e}")
-            return None, None
+            return None
 
     # ==================== 钩子方法 ====================
     async def _generate_content(self, hot_title: dict,
@@ -138,28 +138,18 @@ class BaseWriter(ABC):
 
     async def _save_content(self, raw_content, sanitized_title: str,
                             original_title: str):
-        """统一保存内容为 MD 和 JSON 文件"""
+        """统一保存内容为 JSON 文件"""
         try:
-            os.makedirs(self.file_md_path, exist_ok=True)
-
-            # 保存 MD（raw_content 直接写入）
-            md_path = os.path.join(self.file_md_path, f"{sanitized_title}.md")
-
-            # 如果 raw_content 是 dict（如微博），取 content 字段存 MD
-            md_content = raw_content.get("content", raw_content) if isinstance(raw_content, dict) else raw_content
-            self.str_2_md.save_2_md(md_content, md_path)
-            self.log.info(f"✅ Markdown 文件已保存：{md_path}")
-
             # 通过钩子构建 JSON 数据
             json_data = self._build_json_data(original_title, raw_content, sanitized_title)
             await self._append_to_json(json_data)
             self.log.info(f"✅ JSON 文件已追加")
 
-            return md_path, json_data
+            return json_data
 
         except Exception as e:
             self.log.error(f"保存文件失败：{e}", exc_info=True)
-            return None, None
+            return None
 
     async def _append_to_json(self, data: dict):
         """追加数据到 JSON 文件"""

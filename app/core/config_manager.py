@@ -184,6 +184,10 @@ class ConfigManager:
     def debug_mode(self) -> bool:
         return self._config['app']['debug_mode']
 
+    @property
+    def temp_path(self) -> Path:
+        return Path(self._config['app']['temp_path'])
+
     def get_deepseek_config(self) -> Dict[str, Any]:
         """获取 DeepSeek API 配置"""
         return self._config['api']['deepseek']

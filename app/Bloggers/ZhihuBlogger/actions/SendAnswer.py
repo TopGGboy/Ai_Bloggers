@@ -113,8 +113,8 @@ class AsyncZhihuSendAnswer(BaseSendEssay):
         """
         # 热榜条目链接
         href = data["href"]
-        # 要上传的 Markdown 文件路径
-        file_path = data["md_path"]
+        # 要上传的 DOCX 文件路径
+        file_path = data["docx_path"]
 
         await self.__to_hot_item(href)
 
