@@ -950,7 +950,7 @@ if __name__ == '__main__':
                 user_data_dir='zhihu_data',
                 mode=PlatformMode.MONITOR_AND_PUBLISH,
                 save_config=True,
-                publish_type=ZhihuPublishType.ANSWER
+                publish_type=ZhihuPublishType.ARTICLE
             )
             await check_exit()
 

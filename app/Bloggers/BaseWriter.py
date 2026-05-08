@@ -18,7 +18,7 @@ class BaseWriter(ABC):
     - _build_json_data() 钩子：子类定义 JSON 中要保存哪些字段
     """
 
-    def __init__(self, platform_name: str):
+    def __init__(self, platform_name: str, publish_type=None):
         # 日志
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             self.__class__.__name__)
@@ -28,6 +28,10 @@ class BaseWriter(ABC):
 
         # 初始化 Str2Md 工具
         self.str_2_md = Str2Md()
+        # 发布类型
+        self.publish_type = publish_type
+        if self.publish_type is None:
+            raise ValueError("发布类型不能为空")
 
     async def write(self, hot_title: dict = None, get_hot_instance=None, write_text_instance=None):
         """
@@ -94,7 +98,7 @@ class BaseWriter(ABC):
 
         # ✍️ 正在生成文案...
         self.log.info("✍️ 正在生成文案...")
-        hot_text, _ = await write_text_instance.write_hot_text_async(
+        hot_text, _ = await write_text_instance.write_hot_answer_async(
             hot_title['title'],
             hot_text_content['content'],
             hot_text_content['question_head']

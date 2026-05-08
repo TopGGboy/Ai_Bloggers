@@ -36,7 +36,7 @@ class ZhihuAsyncControl(BasePlatform):
         await control.run()
     """
 
-    def __init__(self, context: BrowserContext, mode: str = None,
+    def __init__(self, context: BrowserContext, mode: PlatformMode = None,
                  user_data_dir: str = None,
                  publish_type: ZhihuPublishType = ZhihuPublishType.ANSWER):
         """

@@ -17,9 +17,23 @@ class BaseWriteText(ABC):
         self.model_name = config.platforms[platform_name]['model'].get("name", "deepseek-chat")
         self.temperature = config.platforms[platform_name]['model'].get("temperature", 0.7)
 
-    async def write_hot_text_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
+    async def write_hot_answer_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
         """
-        异步版本：根据热点话题创作知乎文章
+        异步版本：根据热点话题创作回答
+
+        Args:
+            hot_title (str): 热点话题标题
+            hot_content (list): 热点话题详细内容
+            question_head (str): 热点话题问题简介
+
+        Returns:
+            tuple: (生成的回答内容，消息历史记录)
+        """
+        pass
+
+    async def write_hot_article_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
+        """
+        异步版本：根据热点话题创作文章
 
         Args:
             hot_title (str): 热点话题标题

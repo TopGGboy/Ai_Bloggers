@@ -7,7 +7,7 @@ from app.core.MCP import MCPIntegration
 from app.Bloggers.BaseWriteText import BaseWriteText
 from app.core.config_manager import config
 
-SYSTEM_PROMPT = """
+ANSWER_SYSTEM_PROMPT = """
 # 知乎博主创作规范
 
 ## 核心人设
@@ -103,6 +103,10 @@ SYSTEM_PROMPT = """
 }
 """
 
+ARTICLE_SYSTEM_PROMPT = """
+
+"""
+
 
 class WriteZhihuText(BaseWriteText):
     def __init__(self):
@@ -117,43 +121,9 @@ class WriteZhihuText(BaseWriteText):
         self.mcp_integration = MCPIntegration(client=self.client, model_name=self.model_name, platform_name="zhihu",
                                               platform_config=config.platforms["zhihu"])
 
-    def write_hot_text(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
+    async def write_hot_answer_async(self, hot_title: str, hot_content: list, question_head: str):
         """
-        根据热点话题创作知乎文章
-
-        Args:
-            hot_title (str): 热点话题标题
-            hot_content (list): 热点话题详细内容
-            question_head (str): 热点话题问题简介
-
-        Returns:
-            tuple: (生成的文章内容, 消息历史记录)
-        """
-        hot_contents = ""
-        for index, content in enumerate(hot_content):
-            hot_contents += f"\n===\n第{index + 1}篇:\n {content}\n"
-
-        user_prompt = f"""
-        请基于以下热点信息创作一篇高质量的知乎文章：
-
-        热点标题：{hot_title}
-        热点内容：{hot_content}
-        问题简介：{question_head}
-        """
-
-        content, new_msg_history = self.mcp_integration.chat_with_tools(
-            user_prompt=user_prompt,
-            client=self.client,
-            model=self.model_name,
-            system_prompt=SYSTEM_PROMPT,
-            temperature=self.temperature
-        )
-
-        return content, new_msg_history
-
-    async def write_hot_text_async(self, hot_title: str, hot_content: list, question_head: str):
-        """
-        异步版本：根据热点话题创作知乎文章
+        异步版本：根据热点话题创作知乎回答
 
         Args:
             hot_title (str): 热点话题标题
@@ -176,7 +146,7 @@ class WriteZhihuText(BaseWriteText):
             user_prompt=user_prompt,
             client=self.async_client,
             model=self.model_name,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=ANSWER_SYSTEM_PROMPT,
             temperature=self.temperature
         )
 
@@ -184,36 +154,16 @@ class WriteZhihuText(BaseWriteText):
 
         return content, new_msg_history
 
-    def edit_article(self, original_article: str, edit_request: str) -> tuple[str, list]:
+    async def write_hot_article_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
         """
-        编辑已有的文章
+        异步版本：根据热点话题创作文章
 
-        Args:
-            original_article (str): 原始文章内容
-            edit_request (str): 编辑请求或建议
-
-        Returns:
-            tuple: (编辑后的文章内容, 消息历史记录)
+        :param hot_title: 热点话题标题
+        :param hot_content: 热点话题详细内容
+        :param question_head: 热点话题问题简介
+        :return: content, new_msg_history
         """
-        user_prompt = f"""
-        请根据编辑要求修改以下文章：
-
-        原文：{original_article}
-        
-        编辑要求：{edit_request}
-
-        请在保留原文核心内容的基础上，按要求进行修改。
-        """
-
-        content, new_msg_history = self.llm.get_response_from_llm(
-            user_prompt=user_prompt,
-            client=self.client,
-            model=self.model_name,
-            system_prompt=SYSTEM_PROMPT,
-            temperature=0.7
-        )
-
-        return content, new_msg_history
+        pass
 
 
 if __name__ == '__main__':
@@ -222,7 +172,7 @@ if __name__ == '__main__':
 
     async def main():
         write_text = WriteZhihuText()
-        content, new_msg_history = await write_text.write_hot_text_async(
+        content, new_msg_history = await write_text.write_hot_answer_async(
             "男子从内地偷运 51 公斤盒饭回澳门，被海关查获，为啥要专门偷运盒饭？未经检疫的熟食入境会有什么风险？", ["", ""],
             "")
         print(content)

@@ -5,6 +5,7 @@ from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 from app.tools.Str2Md import Str2Md
 from app.Bloggers.BaseWriter import BaseWriter
+from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
 
 
 class ZhihuWriter(BaseWriter):
@@ -16,7 +17,7 @@ class ZhihuWriter(BaseWriter):
     """
 
     def __init__(self):
-        super().__init__(platform_name="zhihu")
+        super().__init__(platform_name="zhihu", publish_type=ZhihuPublishType.ANSWER)
 
     async def _generate_content(self, hot_title: dict,
                                 get_hot_instance=None,
@@ -24,14 +25,21 @@ class ZhihuWriter(BaseWriter):
         self.log.info("🔍 正在获取热榜详细内容...")
         hot_text_content = await get_hot_instance.get_hot_content_list(hot_title['href'])
 
-        # ✍️ 正在生成文案...
-        self.log.info("✍️ 正在生成文案...")
-        hot_text, _ = await write_text_instance.write_hot_text_async(
-            hot_title['title'],
-            hot_text_content['content'],
-            hot_text_content['question_head']
-        )
-        return hot_text
+        if self.publish_type == ZhihuPublishType.ANSWER:
+            self.log.info("✍️ 正在生成回答...")
+            hot_text, _ = await write_text_instance.write_hot_answer_async(
+                hot_title['title'],
+                hot_text_content['content'],
+                hot_text_content['question_head']
+            )
+            return hot_text
+        elif self.publish_type == ZhihuPublishType.ARTICLE:
+            result, _ = await write_text_instance.write_hot_article_async(hot_title['title'],
+                                                                          hot_text_content['content'],
+                                                                          hot_text_content['question_head'])
+            return result
+        else:
+            raise ValueError(f"不支持的发布类型: {self.publish_type}")
 
     def _build_json_data(self, original_title: str, raw_content,
                          sanitized_title: str) -> dict:
