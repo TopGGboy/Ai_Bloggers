@@ -34,6 +34,7 @@ class ZhihuWriter(BaseWriter):
             )
             return hot_text
         elif self.publish_type == ZhihuPublishType.ARTICLE:
+            self.log.info("✍️ 正在生成文章...")
             result, _ = await write_text_instance.write_hot_article_async(hot_title['title'],
                                                                           hot_text_content['content'],
                                                                           hot_text_content['question_head'])

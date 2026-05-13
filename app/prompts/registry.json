@@ -1,0 +1,35 @@
+{
+  "_comment": "提示词注册表 - 由 PromptManager 自动维护, 手动修改需谨慎",
+  "prompts": {
+    "zhihu_answer": {
+      "file": "zhihu/answer.json",
+      "default_file": "zhihu/answer_default.json",
+      "platform": "zhihu",
+      "name": "知乎回答创作提示词",
+      "category": "content_creation",
+      "active_version_id": "v_initial",
+      "has_custom": false,
+      "custom_file": null
+    },
+    "zhihu_article": {
+      "file": "zhihu/article.json",
+      "platform": "zhihu",
+      "name": "知乎文章创作提示词",
+      "category": "content_creation",
+      "active_version_id": "v_initial",
+      "default_file": "zhihu/article_default.json",
+      "has_custom": false,
+      "custom_file": null
+    },
+    "weibo_article": {
+      "file": "weibo/article.json",
+      "default_file": "weibo/article_default.json",
+      "platform": "weibo",
+      "name": "微博头条创作提示词",
+      "category": "content_creation",
+      "active_version_id": "v_initial",
+      "has_custom": false,
+      "custom_file": null
+    }
+  }
+}

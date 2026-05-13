@@ -1,0 +1,19 @@
+{
+  "id": "zhihu_article",
+  "name": "知乎文章创作提示词",
+  "platform": "zhihu",
+  "category": "content_creation",
+  "version": "default",
+  "created_at": "2026-05-13T14:00:00+08:00",
+  "updated_at": "2026-05-13T14:00:00+08:00",
+  "author": "system",
+  "tags": ["创作", "知乎", "文章"],
+  "variables": [],
+  "content": "# TODO: 知乎文章创作提示词待完善",
+  "metadata": {
+    "token_count": 20,
+    "optimization_round": 0,
+    "last_eval_score": null,
+    "usage_count": 0
+  }
+}

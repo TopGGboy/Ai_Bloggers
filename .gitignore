@@ -90,18 +90,35 @@ $RECYCLE.BIN/
 
 ### === 项目专属规则 === ###
 
-# 🔒 敏感配置（绝对不能提交）
+# 敏感配置（绝对不能提交）
 .env
 .env.local
 .env.production
 *.local.env
 
-# 📁 运行时生成的数据
+# 运行时生成的数据
 Data/
 Log_File/
 driver/
 
-# 🧪 测试/临时文件
+# 测试/临时文件
+test/
 my_test.py
 Md/
 t/
+
+
+### === 提示词管理（Prompt Management） === ###
+
+# 运行时激活版 (会被 update_prompt() 更新)
+app/prompts/zhihu/answer.json
+app/prompts/zhihu/article.json
+app/prompts/weibo/answer.json
+
+
+# 用户自定义覆盖
+app/prompts/custom/*.json
+!app/prompts/custom/.gitkeep
+
+# 版本历史快照 (纯运行时数据)
+app/prompts_history/

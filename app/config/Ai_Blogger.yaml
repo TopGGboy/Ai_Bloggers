@@ -91,3 +91,18 @@ platforms:
       essay_file_json: "D:/pythonproject/Ai_Blogger/Data/weibo_essays.json"  # 微博推文json文件
       essay_file_md: "D:/pythonproject/Ai_Blogger/Data/weibo_essays_md"  # 微博推文md文件
       image_path: "D:/pythonproject/Ai_Blogger/Data/weibo/"  # 微博推文图片路径
+
+
+
+prompts:
+  auto_optimize: false      # AI 自动优化开关 (第一阶段关闭)
+  optimize_interval_days: 7               # 自动优化间隔天数
+
+  # 用户自定义覆盖开关
+  custom_override:
+    zhihu_answer:
+      enabled: false        # 设为 true 并编辑 prompts/custom/zhihu_answer.json 即可覆盖
+    zhihu_article:
+      enabled: false
+    weibo_article:
+      enabled: false
