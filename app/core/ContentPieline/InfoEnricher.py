@@ -17,7 +17,8 @@ class InfoEnricher:
     4. 输出结构化的「素材包」给创作 LLM 使用
     """
 
-    def __init__(self):
+    def __init__(self, competitive_flag: bool = True):
+        self.competitive_flag = competitive_flag  # 是否开启竞品内容抓取
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             f"{self.__class__.__name__}"
         )
@@ -64,7 +65,8 @@ class InfoEnricher:
         fact_pack = await self._search_facts(hot_title, topic_analysis)
 
         # 3. 竞品洞察（如果可用）
-        competitive_insights = await self._gather_competitive_insights(hot_title)
+        if self.competitive_flag:
+            competitive_insights = await self._gather_competitive_insights(hot_title)
 
         # 4. 数据点提取
         data_points = await self._extract_data_points(hot_title, fact_pack)
@@ -175,18 +177,162 @@ class InfoEnricher:
 
         return facts
 
+    # TODO: 完善竞品洞察功能，考虑添加更多平台和搜索策略
     async def _gather_competitive_insights(self, hot_title: str) -> list:
         """收集竞品平台上的相关内容洞察"""
         insights = []
 
         try:
-            # 这里可以扩展位实际爬取其他平台的内容
-            # 例如，从社交媒体平台、新闻网站等获取相关数据
-            self.log.info("竞品洞察功能待完善，当前返回空列表")
+            self.log.info(f"开始收集竞品洞察，热点标题: {hot_title}")
+
+            # 阶段1: 并行搜索多个平台（使用现有的互联网搜索能力）
+            platforms_to_search = [
+                ("知乎", f"{hot_title} site:zhihu.com"),
+                ("微博", f"{hot_title} site:weibo.com"),
+                ("小红书", f"{hot_title} site:xiaohongshu.com"),
+            ]
+
+            search_tasks = []
+            for platform_name, search_query in platforms_to_search:
+                task = self._search_platform_content(platform_name, search_query)
+                search_tasks.append(task)
+
+            # 等待所有平台搜索完成
+            platform_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+
+            # 阶段2: 整合各平台结果
+            for i, result in enumerate(platform_results):
+                if isinstance(result, Exception):
+                    self.log.error(f"平台 {platforms_to_search[i][0]} 搜索失败: {result}")
+                    continue
+
+                if result:
+                    insights.extend(result)
+
+            self.log.info(f"竞品洞察收集完成，共获取 {len(insights)} 条洞察")
 
         except Exception as e:
             self.log.error(f"竞品洞察失败: {e}")
         return insights
+
+    async def _search_platform_content(self, platform_name: str, search_query: str) -> list:
+        """
+        搜索特定平台的内容
+
+        :param platform_name: 平台名称
+        :param search_query: 搜索关键词
+        :return: 该平台的内容洞察列表
+        """
+        try:
+            # 使用现有的互联网搜索功能
+            search_results = await internet_search_async(search_query)
+
+            if not search_results or search_results == "无":
+                self.log.warning(f"平台 {platform_name} 未找到相关内容")
+                return []
+
+            insights = []
+
+            # 解析搜索结果，提取关键信息
+            for idx, result in enumerate(search_results[:3]):  # 限制每个平台最多3条
+                if isinstance(result, dict):
+                    insight = await self._extract_platform_insight(
+                        platform_name,
+                        result,
+                        idx + 1
+                    )
+                    if insight:
+                        insights.append(insight)
+
+            return insights
+
+        except Exception as e:
+            self.log.error(f"搜索平台 {platform_name} 内容失败: {e}")
+            return []
+
+    async def _extract_platform_insight(self, platform_name: str, search_result: dict, rank: int) -> dict:
+        """
+        从搜索结果中提取平台洞察
+
+        :param platform_name: 平台名称
+        :param search_result: 搜索结果项
+        :param rank: 排名序号
+        :return: 结构化洞察数据
+        """
+        try:
+            summary = search_result.get("summary", "")
+            content = search_result.get("content", "")
+
+            # 使用LLM提取关键论点和结构
+            system_prompt = f"""
+               你是内容分析专家，请分析来自{platform_name}平台的内容。
+
+               任务：
+               1. 提取核心论点（2-3个）
+               2. 分析内容结构（开篇、主体、结论）
+               3. 判断情感倾向
+               4. 识别独特视角
+
+               返回JSON格式：
+               {{
+                   "platform": "{platform_name}",
+                   "rank": {rank},
+                   "source_summary": "来源摘要（100字内）",
+                   "key_arguments": ["论点1", "论点2"],
+                   "content_structure": {{
+                       "opening": "开篇方式",
+                       "main_points": ["要点1", "要点2"],
+                       "conclusion": "结论"
+                   }},
+                   "sentiment": "正面/负面/中性",
+                   "unique_angles": ["独特视角1", "独特视角2"],
+                   "engagement_estimate": {{
+                       "popularity": "高/中/低",
+                       "reason": "判断依据"
+                   }}
+               }}
+               """
+
+            user_prompt = f"""
+               标题/摘要：{summary[:200]}
+               内容片段：{content[:500]}
+
+               请分析上述内容并返回JSON格式结果。
+               """
+
+            client = self.llm.create_async_client("deepseek-flash")
+            analysis_text, _ = await self.llm.get_response_from_llm_async(
+                user_prompt=user_prompt,
+                client=client,
+                system_prompt=system_prompt,
+                temperature=0.3,
+                model="deepseek-flash"
+            )
+
+            # 解析JSON
+            try:
+                from app.core.AiAgent.llm import extract_json_between_markers
+                insight_data = extract_json_between_markers(analysis_text)
+                return insight_data
+            except Exception as e:
+                self.log.error(f"解析平台洞察JSON失败: {e}")
+                # 返回简化版本
+                return {
+                    "platform": platform_name,
+                    "rank": rank,
+                    "source_summary": summary[:100],
+                    "key_arguments": [],
+                    "sentiment": "未知",
+                    "unique_angles": []
+                }
+
+        except Exception as e:
+            self.log.error(f"提取平台洞察失败: {e}")
+            return None
+
+
+
+
 
     async def _extract_data_points(self, hot_title: str, fact_pack: list) -> list:
         """从事实包中提取可量化的数据点"""

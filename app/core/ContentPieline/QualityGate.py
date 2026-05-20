@@ -864,41 +864,6 @@ class QualityGate:
                 severe_issues <= 2
         )
 
-    async def optimize_content(self, content: str, title: str = "",
-                               max_iterations: int = 3) -> Tuple[str, List[QualityReport]]:
-        """
-        自动迭代优化内容
-
-        Args:
-            content: 原始内容
-            title: 标题
-            max_iterations: 最大迭代次数
-
-        Returns:
-            (优化后的内容, 历次评估报告)
-        """
-        reports = []
-        current_content = content
-
-        for iteration in range(max_iterations):
-            self.log.info(f"第 {iteration + 1}/{max_iterations} 轮优化")
-
-            # 评估当前版本
-            report = await self.evaluate(current_content, title)
-            reports.append(report)
-
-            # 如果通过质检，提前退出
-            if report.passed:
-                self.log.info(f"✓ 第 {iteration + 1} 轮通过质检，综合得分: {report.score.overall_score:.2f}")
-                break
-
-            # 生成优化后的内容
-            current_content = await self._apply_optimizations(
-                current_content, title, report.suggestions
-            )
-
-        return current_content, reports
-
     async def _apply_optimizations(self, content: str, title: str,
                                    suggestions: List[str]) -> str:
         """
@@ -938,3 +903,38 @@ class QualityGate:
         except Exception as e:
             self.log.error(f"优化内容失败: {e}")
             return content
+
+    async def optimize_content(self, content: str, title: str = "",
+                               max_iterations: int = 3) -> Tuple[str, List[QualityReport]]:
+        """
+        自动迭代优化内容
+
+        Args:
+            content: 原始内容
+            title: 标题
+            max_iterations: 最大迭代次数
+
+        Returns:
+            (优化后的内容, 历次评估报告)
+        """
+        reports = []
+        current_content = content
+
+        for iteration in range(max_iterations):
+            self.log.info(f"第 {iteration + 1}/{max_iterations} 轮优化")
+
+            # 评估当前版本
+            report = await self.evaluate(current_content, title)
+            reports.append(report)
+
+            # 如果通过质检，提前退出
+            if report.passed:
+                self.log.info(f"✓ 第 {iteration + 1} 轮通过质检，综合得分: {report.score.overall_score:.2f}")
+                break
+
+            # 生成优化后的内容
+            current_content = await self._apply_optimizations(
+                current_content, title, report.suggestions
+            )
+
+        return current_content, reports

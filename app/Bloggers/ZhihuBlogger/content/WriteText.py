@@ -1,28 +1,33 @@
 import json
 import os
 
-from app.core.AiAgent.llm import LLM, extract_json_between_markers
-from app.core.MCP import MCPIntegration
+from app.core.AiAgent.llm import extract_json_between_markers
 from app.Bloggers.BaseWriteText import BaseWriteText
 from app.core.PromptManager import get_prompt_manager
+from app.core.ContentPieline.ContentPipeline import create_pipeline
 from app.core.config_manager import config
 
 
 class WriteZhihuText(BaseWriteText):
-    def __init__(self):
+    def __init__(self, pipeline_type: str = "simple", **pipeline_kwargs):
         """
         初始化知乎文章写作器
+
+        Args:
+            pipeline_type: 流水线类型 ("simple" 或 "enhanced")
+            **pipeline_kwargs: 传递给流水线的额外参数
+                - enable_enrichment: 是否启用信息增强
+                - enable_quality_check: 是否启用质检
+                - quality_threshold: 质量阈值
+                - max_optimization_rounds: 最大优化轮数
         """
         super().__init__(platform_name="zhihu")
 
-        self.llm = LLM()
-        self.client = self.llm.create_async_client(self.model_name)
-        self.async_client = self.llm.create_async_client(self.model_name)  # 用于异步生成
-        self.mcp_integration = MCPIntegration(client=self.client, model_name=self.model_name, platform_name="zhihu",
-                                              platform_config=config.platforms["zhihu"])
-
         # 提示词管理器
         self.prompt_mgr = get_prompt_manager()
+        self.pipeline_type = pipeline_type
+        self.pipeline_kwargs = pipeline_kwargs
+        self.log.info(f"📦 使用内容流水线: {pipeline_type}, 配置: {pipeline_kwargs}")
 
     async def write_hot_answer_async(self, hot_title: str, hot_content: list, question_head: str):
         """
@@ -48,17 +53,23 @@ class WriteZhihuText(BaseWriteText):
         # 从 PromptManager 获取系统提示词
         answer_prompt = self.prompt_mgr.get_prompt("zhihu_answer")
 
-        content, new_msg_history = await self.mcp_integration.chat_with_tools_async(
-            user_prompt=user_prompt,
-            client=self.async_client,
-            model=self.model_name,
-            system_prompt=answer_prompt.content,
-            temperature=self.temperature
+        pipeline = create_pipeline(
+            self.pipeline_type,
+            platform_name="zhihu",
+            **self.pipeline_kwargs
         )
 
-        content = extract_json_between_markers(content)
+        content, msg_history = await pipeline.generate(
+            user_prompt=user_prompt,
+            system_prompt=answer_prompt.content,
+            hot_title=hot_title,
+            hot_content=hot_content,
+            title=hot_title
+        )
 
-        return content, new_msg_history
+        parsed_content = extract_json_between_markers(content) if isinstance(content, str) else content
+
+        return parsed_content, msg_history
 
     async def write_hot_article_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
         """

@@ -14,9 +14,6 @@ class BaseWriteText(ABC):
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             f"{self.__class__.__name__}.WriteText")
 
-        self.model_name = config.platforms[platform_name]['model'].get("name", "deepseek-chat")
-        self.temperature = config.platforms[platform_name]['model'].get("temperature", 0.7)
-
     async def write_hot_answer_async(self, hot_title: str, hot_content: list, question_head: str) -> tuple[str, list]:
         """
         异步版本：根据热点话题创作回答

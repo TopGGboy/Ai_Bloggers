@@ -28,9 +28,9 @@ class ZhihuWriter(BaseWriter):
         if self.publish_type == ZhihuPublishType.ANSWER:
             self.log.info("✍️ 正在生成回答...")
             hot_text, _ = await write_text_instance.write_hot_answer_async(
-                hot_title['title'],
-                hot_text_content['content'],
-                hot_text_content['question_head']
+                hot_title=hot_title['title'],
+                hot_content=hot_text_content['content'],
+                question_head=hot_text_content['question_head']
             )
             return hot_text
         elif self.publish_type == ZhihuPublishType.ARTICLE:
