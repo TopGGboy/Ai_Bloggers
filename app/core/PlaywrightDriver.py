@@ -47,25 +47,32 @@ class AsyncPlaywrightDriver:
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             self.__class__.__name__)
 
-    async def launch_browser(self, viewport_type: Literal["pc", "mobile"] = "pc") -> Tuple[
+    async def launch_browser(self,
+                             viewport_type: Literal["pc", "mobile"] = "pc",
+                             user_data_dir: Optional[str] = None) -> Tuple[
         Browser, BrowserContext, Page]:
         """
-        异步启动 Playwright 浏览器实例（普通模式，不带持久化）。
+        异步启动 Playwright 浏览器实例（支持持久化上下文）。
 
-        该方法启动一个临时的浏览器实例，真正的持久化由各平台的 Context 自己管理。
-        支持单 Browser + 多 Context 架构，每个平台有独立的 Cookie/缓存隔离。
+        如果提供了 user_data_dir，则使用 storage_state.json 实现持久化，
+        包括 Cookie、LocalStorage 等会话状态的自动保存和恢复（与 create_platform_context 相同的机制）。
 
-        :param viewport_type: 视图类型，可选 'pc' 或 'mobile'，决定默认视口尺寸
+        如果没有提供，则使用普通模式（不带持久化），
+        由各平台通过 create_platform_context 自行管理持久化。
+
+        :param viewport_type: 视图类型，可选 'pc' 或 'mobile'
                               - 'pc'   : 1920x1080
                               - 'mobile': 375x812
+        :param user_data_dir: 持久化数据目录（可选），提供后自动启用 storage_state 持久化
         :return: 包含三个元素的元组：
                  - browser    : Playwright 浏览器实例 (Browser)
-                 - context    : 临时上下文实例 (BrowserContext)，仅用于初始页面
+                 - context    : 浏览器上下文实例 (BrowserContext)，持久化时会自动保存关闭
                  - page       : 新创建的标签页实例 (Page)
         :raises PlaywrightTimeoutError: 浏览器启动超时
         :raises Exception: 其他启动过程中的异常
         """
         try:
+            from pathlib import Path
             self._playwright = await async_playwright().start()
             self.log.info("Playwright 异步启动成功")
 
@@ -101,20 +108,42 @@ class AsyncPlaywrightDriver:
                 "permissions": ["geolocation"],  # 授予地理位置权限
             }
 
-            # 普通启动浏览器，不使用持久化
+            # 启动浏览器
             self._browser = await self._playwright.chromium.launch(**launch_kwargs)
 
-            # 创建一个临时上下文用于初始化页面
-            temp_context = await self._browser.new_context(**context_kwargs)
-            self._contexts.append(temp_context)
+            # 确定是否使用持久化模式
+            data_dir = user_data_dir or self.base_data_dir
 
-            self.log.info("✅ 启动普通浏览器（持久化由各平台 Context 自己管理）")
+            if data_dir:
+                # ----- 持久化模式（与 create_platform_context 机制一致） -----
+                data_path = Path(data_dir)
+                data_path.mkdir(parents=True, exist_ok=True)
+                storage_state_file = data_path / "storage_state.json"
+
+                if storage_state_file.exists():
+                    context_kwargs["storage_state"] = str(storage_state_file)
+                    self.log.info(f"📂 加载持久化状态：{storage_state_file}")
+                else:
+                    self.log.info(f"🆕 创建新上下文（首次使用，无持久化状态）")
+
+                context = await self._browser.new_context(**context_kwargs)
+                self._context_storage_paths[context] = str(storage_state_file)
+                self.log.info("✅ 启动持久化浏览器（storage_state 自动管理）")
+            else:
+                # ----- 普通模式（不带持久化） -----
+                context = await self._browser.new_context(**context_kwargs)
+                self.log.info("✅ 启动普通浏览器（持久化由各平台 Context 自己管理）")
+
+            self._contexts.append(context)
+
+            # 创建新页面并添加到页面列表（供 quit 时统一清理）
+            page = await context.new_page()
+            self._pages.append(page)
 
             # 加载反检测脚本
             await self._load_anti_detection_script()
 
-            return self._browser, temp_context, None
-
+            return self._browser, context, page
 
         except PlaywrightTimeoutError as e:
             self.log.error(f"浏览器启动超时：{str(e)}")

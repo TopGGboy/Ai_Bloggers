@@ -4,6 +4,7 @@ from app.core.AiAgent.IntertSearch import internet_search_async
 from app.core.AiAgent.llm import LLM, extract_json_between_markers
 from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
+from app.Bloggers.ZhihuBlogger.scraping.SearchContent import AsyncSearchContent
 
 
 class InfoEnricher:
@@ -17,12 +18,18 @@ class InfoEnricher:
     4. 输出结构化的「素材包」给创作 LLM 使用
     """
 
-    def __init__(self, competitive_flag: bool = True):
-        self.competitive_flag = competitive_flag  # 是否开启竞品内容抓取
+    def __init__(self, page=None):
+        self.competitive_flag = False
+        self.page = page  # 竞品内容抓取页面
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             f"{self.__class__.__name__}"
         )
         self.llm = LLM()
+
+        self.competition_platform = config.competition_platform
+        if self.competition_platform['zhihu']['enabled']:
+            self.zhihu_search_content = AsyncSearchContent(self.page)
+            self.competitive_flag = True
 
     async def enrich(self, hot_title: str, hot_content: list) -> dict:
         """
@@ -65,7 +72,8 @@ class InfoEnricher:
         fact_pack = await self._search_facts(hot_title, topic_analysis)
 
         # 3. 竞品洞察（如果可用）
-        if self.competitive_flag:
+        competitive_insights = []
+        if self.competitive_flag and self.page:
             competitive_insights = await self._gather_competitive_insights(hot_title)
 
         # 4. 数据点提取
@@ -112,13 +120,14 @@ class InfoEnricher:
                 client=client,
                 system_prompt=system_prompt,
                 temperature=0.3,
-                model="deepseek-flash"
+                model="deepseek-v4-flash"
             )
 
             # 尝试解析JSON响应
             try:
                 topic_analysis = extract_json_between_markers(content)
-            except ValueError.JSONDecodeError:
+                return topic_analysis
+            except json.JSONDecodeError:
                 self.log.error(f"解析JSON分析失败，返回内容：{content}")
                 return {
                     "category": "未分类",
@@ -185,70 +194,26 @@ class InfoEnricher:
         try:
             self.log.info(f"开始收集竞品洞察，热点标题: {hot_title}")
 
-            # 阶段1: 并行搜索多个平台（使用现有的互联网搜索能力）
-            platforms_to_search = [
-                ("知乎", f"{hot_title} site:zhihu.com"),
-                ("微博", f"{hot_title} site:weibo.com"),
-                ("小红书", f"{hot_title} site:xiaohongshu.com"),
-            ]
+            if self.zhihu_search_content:
+                max_content = config.competition_platform['zhihu']['max_content']
+                max_comments = config.competition_platform['zhihu']['max_comments']
 
-            search_tasks = []
-            for platform_name, search_query in platforms_to_search:
-                task = self._search_platform_content(platform_name, search_query)
-                search_tasks.append(task)
+                if max_content <= 0:
+                    self.log.warning("最大处理条数必须大于 0")
+                    return []
 
-            # 等待所有平台搜索完成
-            platform_results = await asyncio.gather(*search_tasks, return_exceptions=True)
-
-            # 阶段2: 整合各平台结果
-            for i, result in enumerate(platform_results):
-                if isinstance(result, Exception):
-                    self.log.error(f"平台 {platforms_to_search[i][0]} 搜索失败: {result}")
-                    continue
-
-                if result:
-                    insights.extend(result)
+                # 1. 知乎内容搜索
+                zhihu_insights = await self.zhihu_search_content.search(query=hot_title, max_items=max_content,
+                                                                        max_comments=max_comments)
+                for i, zhihu_result in enumerate(zhihu_insights):
+                    platform_insight = await self._extract_platform_insight("知乎", zhihu_result, i + 1)
+                    if platform_insight:
+                        insights.append(platform_insight)
 
             self.log.info(f"竞品洞察收集完成，共获取 {len(insights)} 条洞察")
-
         except Exception as e:
             self.log.error(f"竞品洞察失败: {e}")
         return insights
-
-    async def _search_platform_content(self, platform_name: str, search_query: str) -> list:
-        """
-        搜索特定平台的内容
-
-        :param platform_name: 平台名称
-        :param search_query: 搜索关键词
-        :return: 该平台的内容洞察列表
-        """
-        try:
-            # 使用现有的互联网搜索功能
-            search_results = await internet_search_async(search_query)
-
-            if not search_results or search_results == "无":
-                self.log.warning(f"平台 {platform_name} 未找到相关内容")
-                return []
-
-            insights = []
-
-            # 解析搜索结果，提取关键信息
-            for idx, result in enumerate(search_results[:3]):  # 限制每个平台最多3条
-                if isinstance(result, dict):
-                    insight = await self._extract_platform_insight(
-                        platform_name,
-                        result,
-                        idx + 1
-                    )
-                    if insight:
-                        insights.append(insight)
-
-            return insights
-
-        except Exception as e:
-            self.log.error(f"搜索平台 {platform_name} 内容失败: {e}")
-            return []
 
     async def _extract_platform_insight(self, platform_name: str, search_result: dict, rank: int) -> dict:
         """
@@ -260,7 +225,7 @@ class InfoEnricher:
         :return: 结构化洞察数据
         """
         try:
-            summary = search_result.get("summary", "")
+            summary = search_result.get("title", "")
             content = search_result.get("content", "")
 
             # 使用LLM提取关键论点和结构
@@ -294,8 +259,8 @@ class InfoEnricher:
                """
 
             user_prompt = f"""
-               标题/摘要：{summary[:200]}
-               内容片段：{content[:500]}
+               标题/摘要：{summary}
+               内容：{content}
 
                请分析上述内容并返回JSON格式结果。
                """
@@ -311,7 +276,6 @@ class InfoEnricher:
 
             # 解析JSON
             try:
-                from app.core.AiAgent.llm import extract_json_between_markers
                 insight_data = extract_json_between_markers(analysis_text)
                 return insight_data
             except Exception as e:
@@ -329,10 +293,6 @@ class InfoEnricher:
         except Exception as e:
             self.log.error(f"提取平台洞察失败: {e}")
             return None
-
-
-
-
 
     async def _extract_data_points(self, hot_title: str, fact_pack: list) -> list:
         """从事实包中提取可量化的数据点"""

@@ -6,6 +6,8 @@
 """
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Tuple
+from playwright.async_api import BrowserContext, Page
+
 from app.core.AiAgent.llm import LLM, extract_json_between_markers
 from app.core.MCP import MCPIntegration
 from app.core.PromptManager import get_prompt_manager
@@ -118,7 +120,8 @@ class EnhancedContentPipeline(BaseContentPipeline):
             enable_enrichment: bool = True,
             enable_quality_check: bool = True,
             quality_threshold: float = 7.0,
-            max_optimization_rounds: int = 2
+            max_optimization_rounds: int = 2,
+            page: Optional[Page] = None
     ):
         """
         初始化增强流水线
@@ -135,7 +138,7 @@ class EnhancedContentPipeline(BaseContentPipeline):
         self.enable_quality_check = enable_quality_check
 
         # 初始化 InfoEnricher
-        self.info_enricher = InfoEnricher(competitive_flag=False) if enable_enrichment else None
+        self.info_enricher = InfoEnricher(page=page) if enable_enrichment else None
 
         # 初始化 QualityGate
         self.quality_gate = QualityGate(
@@ -192,7 +195,7 @@ class EnhancedContentPipeline(BaseContentPipeline):
                     hot_content
                 )
                 current_user_prompt = enriched_prompt
-                msg_history.extend(enrich_history)
+                msg_history.extend(history_entry)
             else:
                 self.log.info("⏭️ 跳过信息增强")
 
@@ -207,7 +210,7 @@ class EnhancedContentPipeline(BaseContentPipeline):
             # ===== 阶段3: 创作生成 =====
             self.log.info("✍️ [阶段3/5] 创作生成...")
             draft_content, draft_history = await self._create_content(
-                current_user_prompt, system_prompt, temperature, max_iterations
+                current_user_prompt, system_prompt, temperature
             )
             msg_history.extend(draft_history)
 
@@ -454,3 +457,98 @@ def create_pipeline(pipeline_type: str = "simple", **kwargs) -> BaseContentPipel
         return SimpleContentPipeline(**kwargs)
     else:
         raise ValueError(f"未知的流水线类型: {pipeline_type}")
+
+
+if __name__ == '__main__':
+    import asyncio
+    import time
+
+    USER_DATA_DIR = r"D:\pythonproject\Ai_Blogger\driver\playwright_data"
+
+
+    async def main():
+        """快速验证 ContentPipeline 的基本功能"""
+        from app.core.PlaywrightDriver import AsyncPlaywrightDriver
+
+        print("=" * 60)
+        print("  ContentPipeline 快速测试（含浏览器竞品搜索）")
+        print("=" * 60)
+
+        async with AsyncPlaywrightDriver(base_data_dir=USER_DATA_DIR) as driver:
+            browser, context, page = await driver.launch_browser(
+                viewport_type="pc",
+                user_data_dir=f"{USER_DATA_DIR}/zhihu_data"
+            )
+
+            # ── 1. 工厂函数 ──
+            print("\n[1/4] 工厂函数 ...", end=" ")
+            try:
+                p1 = create_pipeline("simple", platform_name="zhihu")
+                p2 = create_pipeline(
+                    "enhanced", platform_name="zhihu",
+                    enable_quality_check=False, page=page
+                )
+                assert isinstance(p1, SimpleContentPipeline)
+                assert isinstance(p2, EnhancedContentPipeline)
+                print("✅")
+            except Exception as e:
+                print(f"❌ {e}")
+                return
+
+            # # ── 2. SimplePipeline ──
+            # print("[2/4] SimplePipeline 生成 ...", end=" ")
+            # t0 = time.time()
+            # try:
+            #     content, history = await p1.generate(
+            #         user_prompt="为什么越来越多年轻人选择不婚主义？请用一段话回答。",
+            #         system_prompt="你是一个接地气的知乎答主，有个人体感，不说空话。",
+            #         temperature=0.7,
+            #     )
+            #     assert content and len(content) > 20
+            #     print(f"✅ ({len(content)}字, {time.time() - t0:.1f}s)")
+            # except Exception as e:
+            #     print(f"❌ {e}")
+            #     return
+
+            # ── 3. EnhancedPipeline（带 page，走竞品搜索）─
+            print("[3/4] EnhancedPipeline 生成 ...", end=" ")
+            t0 = time.time()
+            content = "雷军"
+            try:
+                content2, history2 = await p2.generate(
+                    user_prompt=f"基于热点创作一篇知乎短文：\n标题：{content[:30]}",
+                    system_prompt="你是一个知乎答主，回答要有深度。",
+                    hot_title=content[:30],
+                    hot_content=[],
+                    temperature=0.7,
+                )
+                assert content2 and len(content2) > 50
+                print(f"✅ ({len(content2)}字, {time.time() - t0:.1f}s, {len(history2)}条消息)")
+            except Exception as e:
+                print(f"❌ {e}")
+                return
+
+            # ── 4. QualityGate ──
+            print("[4/4] QualityGate 评估 ...", end=" ")
+            t0 = time.time()
+            try:
+                from app.core.ContentPieline.QualityGate import QualityGate
+                gate = QualityGate(platform="zhihu", enable_multi_expert=True)
+                report = await gate.evaluate(content=content2, title=content[:30])
+                assert report.score.overall_score > 0
+                print(f"✅ (综合分{report.score.overall_score:.1f}, "
+                      f"{len(report.expert_reviews)}位专家, {time.time() - t0:.1f}s)")
+                print(f"   状态: {report.review_status.value} | "
+                      f"通过: {'是' if report.passed else '否'}")
+                if report.ai_trace_indicators:
+                    print(f"   AI痕迹: {report.ai_trace_indicators}")
+            except Exception as e:
+                print(f"❌ {e}")
+                return
+
+        print(f"\n{'=' * 60}")
+        print("  全部通过 ✅")
+        print(f"{'=' * 60}")
+
+
+    asyncio.run(main())

@@ -31,7 +31,7 @@ platforms:
     element_timeout: 3000  # 元素等待超时时间，单位毫秒
 
     model:
-      name: "deepseek-chat"
+      name: "deepseek-v4-flash"
       temperature: 0.7
 
     tools:
@@ -67,7 +67,7 @@ platforms:
     element_timeout: 3000  # 元素等待超时时间，单位毫秒
 
     model:
-      name: "deepseek-chat"
+      name: "deepseek-v4-flash"
       temperature: 0.7
 
     tools:
@@ -92,6 +92,18 @@ platforms:
       essay_file_md: "D:/pythonproject/Ai_Blogger/Data/weibo_essays_md"  # 微博推文md文件
       image_path: "D:/pythonproject/Ai_Blogger/Data/weibo/"  # 微博推文图片路径
 
+# 内容生成流水线配置
+content_pipeline:
+  # 竞品分析 - 是否抓取各平台同话题下的高赞内容做参考
+  competition_platform:
+    zhihu:
+      enabled: true
+      max_content: 1
+      max_comments: 0
+    weibo:
+      enabled: true
+      max_content: 1
+      max_comments: 0
 
 
 prompts:

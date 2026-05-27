@@ -114,6 +114,7 @@ t/
 app/prompts/zhihu/answer.json
 app/prompts/zhihu/article.json
 app/prompts/weibo/answer.json
+app/prompts/weibo/article.json
 
 
 # 用户自定义覆盖

@@ -463,9 +463,32 @@ Ai_Blogger/
 
 ---
 
-## 许可证 & 免责声明
+## 许可证
 
-> ⚠️ 本工具仅供学习 AI Agent 与浏览器自动化技术，请勿用于恶意刷量或违反平台规则的行为。使用者需自行承担风险，遵守各平台服务条款与 robots 协议。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Copyright © 2024-2025 Ai_Blogger
+
+本项目采用 **MIT 许可证** 开源。查看 [LICENSE](./LICENSE) 获取完整条款。
+
+### 致谢
+
+本项目的运行离不开以下优秀的开源项目：
+
+| 项目 | 许可证 | 用途 |
+|------|--------|------|
+| [Playwright](https://github.com/microsoft/playwright) | Apache 2.0 | 浏览器自动化 |
+| [OpenAI Python SDK](https://github.com/openai/openai-python) | MIT | LLM API 调用 |
+| [PyYAML](https://github.com/yaml/pyyaml) | MIT | 配置解析 |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | BSD 3-Clause | 环境变量管理 |
+| [DeepSeek](https://platform.deepseek.com/) | — | 大语言模型服务 |
+
+---
+
+### 免责声明
+
+> ⚠️ 本工具仅供学习 AI Agent 与浏览器自动化技术，请勿用于恶意刷量或违反平台规则的行为。
+> 使用者需自行承担风险，遵守各平台服务条款与 robots 协议。作者不对因使用本工具导致的账号封禁、法律纠纷等后果承担责任。
 
 ---
 

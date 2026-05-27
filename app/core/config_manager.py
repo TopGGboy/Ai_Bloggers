@@ -202,6 +202,11 @@ class ConfigManager:
         """获取平台配置"""
         return self._config['platforms']
 
+    @property
+    def competition_platform(self) -> str:
+        """获取竞品平台配置"""
+        return self._config['content_pipeline']['competition_platform']
+
     def get(self, path: str, default=None):
         """获取嵌套配置值，支持路径访问如 'app.log_level'"""
         keys = path.split('.')
