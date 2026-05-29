@@ -259,7 +259,7 @@ class AsyncSearchContent:
             comment_items = soup.find_all('div', attrs={'data-id': True})
 
             comments = []
-            for item in comment_items:
+            for item in comment_items[:max_comments]:
                 try:
                     comment_id = item.get('data-id', '')
 
@@ -420,12 +420,14 @@ async def test_zhihu_search_fetcher():
 
         search_content = AsyncSearchContent(page)
 
-        results = await search_content.search("雷军", max_items=5)
+        results = await search_content.search("雷军", max_items=5, max_comments=20)
         for i, item in enumerate(results, 1):
             print(f"\n=== 第 {i} 条 ===")
             print(f"标题：{item.get('title')}")
             print(f"内容：{item.get('content', '')[:100]}...")
             print(f"评论数：{len(item.get('comments', []))}")
+
+        print(results)
 
 
 if __name__ == '__main__':
