@@ -91,7 +91,7 @@
 | **语言** | Python 3.10+ | 类型注解、协程支持 |
 | **运行时** | asyncio + async/await | 事件驱动非阻塞调度 |
 | **浏览器自动化** | Playwright | 跨浏览器支持，多 Context 隔离 |
-| **AI 能力** | DeepSeek API | Chat + Reasoning 双模型 |
+| **AI 能力** | DeepSeek API + 通义千问 API | Chat + Reasoning + 图片生成 |
 | **工具协议** | MCP (Model Context Protocol) | LLM 与外部工具的标准化接口 |
 | **配置管理** | YAML + dotenv | 环境隔离，敏感信息安全 |
 
@@ -289,12 +289,29 @@ venv\Scripts\activate
 # Linux/Mac
 source venv/bin/activate
 
-# 安装依赖
+# 方式一：通过 requirements.txt 安装（推荐）
 pip install -r requirements.txt
 
-# 安装浏览器
+# 方式二：通过 pyproject.toml 安装
+pip install -e .
+
+# 安装浏览器（第一次使用必需）
 playwright install chromium
 ```
+
+> 💡 **可选依赖**（按需安装）：
+> ```bash
+> # Markdown 转 Word 文档
+> pip install python-docx mistune
+> # Windows 文件上传自动化（仅限 Windows）
+> pip install pywinauto
+> # 控制台彩色日志
+> pip install colorama
+> # 一步安装全部可选依赖
+> pip install -r requirements-dev.txt
+> # 或通过 pyproject.toml
+> pip install -e ".[all]"
+> ```
 
 ### 配置
 
@@ -317,10 +334,16 @@ WEIBO_PASSWORD=your_weibo_password
 ### 运行
 
 ```bash
+# 方式一：交互式 REPL 模式（推荐）
+python run.py
+
+# 方式二：直接启动监控循环
 python -m app.core.MultiPlatformManager
 ```
 
 按 `Ctrl+C` 安全退出。
+
+> 💡 **REPL 模式**提供交互式命令行界面，输入 `help` 查看可用命令，支持动态注册平台、启动/停止监控、手动发布内容等操作。
 
 ---
 
@@ -390,8 +413,12 @@ Ai_Blogger/
 ├── Log_File/                         # 运行日志
 ├── Md/                               # Markdown 产出物
 ├── docs/                             # 文档资源
+├── run.py                            # 程序入口（启动交互式 REPL）
+├── pyproject.toml                    # 项目元数据 & 依赖声明
+├── requirements.txt                  # 核心依赖清单
+├── requirements-dev.txt              # 完整开发依赖
 ├── .env.example                      # 环境变量模板
-└── requirements.txt                  # 依赖清单
+└── .gitignore                        # Git 忽略规则
 ```
 
 ---
@@ -479,6 +506,8 @@ Copyright © 2024-2025 Ai_Blogger
 |------|--------|------|
 | [Playwright](https://github.com/microsoft/playwright) | Apache 2.0 | 浏览器自动化 |
 | [OpenAI Python SDK](https://github.com/openai/openai-python) | MIT | LLM API 调用 |
+| [DashScope](https://github.com/aliyun/dashscope-sdk-python) | MIT | 通义千问图片生成 |
+| [Pillow](https://github.com/python-pillow/Pillow) | Historical | 图片处理 |
 | [PyYAML](https://github.com/yaml/pyyaml) | MIT | 配置解析 |
 | [python-dotenv](https://github.com/theskumar/python-dotenv) | BSD 3-Clause | 环境变量管理 |
 | [DeepSeek](https://platform.deepseek.com/) | — | 大语言模型服务 |

@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-blogger"
+version = "1.0.0"
+description = "AI 多平台自媒体自动运营系统"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "playwright>=1.40",
+    "openai>=1.0",
+    "httpx>=0.25",
+    "dashscope>=1.0",
+    "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+# Markdown 转 Word 文档
+docx = [
+    "python-docx>=1.0",
+    "mistune>=3.0",
+]
+# Windows 文件上传自动化
+win32 = [
+    "pywinauto>=0.6",
+]
+# 控制台彩色日志
+console = [
+    "colorama>=0.4",
+]
+# 全部可选依赖
+all = [
+    "ai-blogger[docx,win32,console]",
+]
+
+[project.scripts]
+ai-blogger = "app.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

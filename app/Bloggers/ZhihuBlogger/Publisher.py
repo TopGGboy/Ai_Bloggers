@@ -3,7 +3,7 @@ import tempfile
 from typing import Dict, Any, Optional
 from playwright.async_api import BrowserContext
 from app.Bloggers.BasePublisher import BasePublisher
-from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
+from app.Bloggers.ZhihuBlogger.PublishTypeEnums import ZhihuPublishType
 
 
 class ZhihuPublisher(BasePublisher):

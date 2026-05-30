@@ -19,6 +19,8 @@ class ConfigManager:
       2. .env 文件（项目根目录）
       3. Ai_Blogger.yaml 配置文件
     """
+    # 项目根目录（由 config_manager.py 所在位置推断）
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # = Ai_Blogger/
 
     # --- 敏感字段映射表：YAML路径 → 环境变量名 ---
     # 格式: ("yaml.dotted.path", "ENV_VAR_NAME", 默认值)
@@ -39,14 +41,19 @@ class ConfigManager:
 
         # 定位 .env 文件：显式指定 → 项目根目录
         if env_file is None:
-            self.env_file = Path(__file__).parent.parent.parent / ".env"
+            self.env_file = self.PROJECT_ROOT / ".env"
         else:
             self.env_file = Path(env_file)
 
         self._config = self.load_config()
 
+    @property
+    def project_root(self) -> Path:
+        """获取项目根目录"""
+        return self.PROJECT_ROOT
+
     def load_config(self) -> Dict[str, Any]:
-        """加载配置：加载 .env → 读 YAML 原文 → 替换 ${} 占位符 → 解析 → 兜底覆盖"""
+        """加载配置：加载 .env → 读 YAML 原文 → 替换 ${} 占位符 → 解析 → 兜底覆盖 → 解析相对路径"""
         # 步骤1：加载 .env 到 os.environ（不覆盖已有系统环境变量）
         self._load_env_file()
 
@@ -68,7 +75,44 @@ class ConfigManager:
         # 步骤5：用环境变量兜底覆盖敏感字段（双重保障）
         self._apply_sensitive_overrides(config_data)
 
+        # 步骤6：将配置中的相对路径解析为基于项目根目录的绝对路径
+        self._resolve_relative_paths(config_data)
+
         return config_data
+
+    def _resolve_relative_paths(self, config: Dict[str, Any]):
+        """
+        将配置中所有表示文件路径的字段从相对路径解析为绝对路径。
+
+        解析规则：
+        - app.logfile_path / app.temp_path / app.base_driver_path
+        - 所有 platforms.*.paths.* 下的字符串值
+        - 仅解析字符串值中以 './' 或 '.\' 开头的相对路径
+        """
+        # 1. 解析 app 级别的路径字段
+        app_cfg = config.get('app', {})
+        for key in ('logfile_path', 'temp_path', 'base_driver_path'):
+            if key in app_cfg and isinstance(app_cfg[key], str):
+                app_cfg[key] = self._to_absolute(app_cfg[key])
+
+        # 2. 解析所有平台下的 paths 字段
+        platforms = config.get('platforms', {})
+        if isinstance(platforms, dict):
+            for platform_name, platform_cfg in platforms.items():
+                if isinstance(platform_cfg, dict):
+                    paths = platform_cfg.get('paths', {})
+                    if isinstance(paths, dict):
+                        for path_key, path_val in paths.items():
+                            if isinstance(path_val, str):
+                                paths[path_key] = self._to_absolute(path_val)
+
+    def _to_absolute(self, path_str: str) -> str:
+        """如果 path_str 是相对路径，基于项目根目录解析为绝对路径"""
+        p = Path(path_str)
+        if p.is_absolute():
+            return path_str
+        # 相对路径 → 拼接 PROJECT_ROOT
+        return str((self.PROJECT_ROOT / p).resolve())
 
     @staticmethod
     def _load_yaml_safely(yaml_text: str) -> Optional[Dict[str, Any]]:
@@ -175,6 +219,10 @@ class ConfigManager:
     @property
     def logfile_path(self) -> Path:
         return Path(self._config['app']['logfile_path'])
+
+    @property
+    def base_driver_path(self) -> Path:
+        return Path(self._config['app']['base_driver_path'])
 
     @property
     def log_level(self) -> str:

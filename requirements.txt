@@ -1,0 +1,11 @@
+aiohttp~=3.13.3
+openai~=2.32.0
+dashscope~=1.25.17
+requests~=2.32.3
+playwright~=1.60.0
+python-dotenv~=1.2.2
+mistune~=3.2.0
+pillow~=11.2.1
+pywinauto~=0.6.9
+colorama~=0.4.6
+beautifulsoup4~=4.14.3

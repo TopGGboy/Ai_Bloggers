@@ -893,8 +893,8 @@ if __name__ == '__main__':
     from app.core.config_manager import config
     from app.Bloggers.ZhihuBlogger.Control import ZhihuAsyncControl
     from app.Bloggers.WeiboBlogger.Control import WeiboAsyncControl
-    from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
-    from app.Bloggers.WeiboBlogger.enums import WeiboPublishType
+    from app.Bloggers.ZhihuBlogger.PublishTypeEnums import ZhihuPublishType
+    from app.Bloggers.WeiboBlogger.PublishTypeEnums import WeiboPublishType
 
     import warnings
     import sys
@@ -935,8 +935,8 @@ if __name__ == '__main__':
         try:
             # 创建管理器
             manager = MultiPlatformManager(
-                md_path=r'D:\pythonproject\Ai_Blogger\Md',
-                base_driver_path=r'D:\pythonproject\Ai_Blogger\driver\playwright_data'
+                md_path=str(config.project_root / "Md"),
+                base_driver_path=str(config.base_driver_path)
             )
 
             # 初始化

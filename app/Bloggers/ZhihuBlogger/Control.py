@@ -3,8 +3,8 @@ from typing import Dict, Any, Optional, List
 from enum import Enum
 
 from playwright.async_api import Page, BrowserContext
-from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
-from app.Bloggers.enums import PlatformMode
+from app.Bloggers.ZhihuBlogger.PublishTypeEnums import ZhihuPublishType
+from app.Bloggers.PlatformEnums import PlatformMode
 from app.Bloggers.BasePlatform import BasePlatform
 
 

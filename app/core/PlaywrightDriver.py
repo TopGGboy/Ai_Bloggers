@@ -139,6 +139,8 @@ class AsyncPlaywrightDriver:
             # 创建新页面并添加到页面列表（供 quit 时统一清理）
             page = await context.new_page()
             self._pages.append(page)
+            # 关闭新页面
+            await page.close()
 
             # 加载反检测脚本
             await self._load_anti_detection_script()

@@ -7,8 +7,9 @@
 app:
   name: "Ai_Blogger"
   version: "1.0.0"
-  logfile_path: "D:/pythonproject/Ai_Blogger/Log_File"
-  temp_path: "D:/pythonproject/Ai_Blogger/Data/temp"    # 临时文件路径
+  logfile_path: "./Log_File"
+  temp_path: "./Data/temp"    # 临时文件路径
+  base_driver_path: "./driver/playwright_data"  # 基础驱动路径
   log_level: "INFO"
   debug_mode: false
   max_workers: 4
@@ -51,11 +52,11 @@ platforms:
 
     # 文件路径设置
     paths:
-      hot_title_file: "D:/pythonproject/Ai_Blogger/Data/zhihu_hot_titles.json"  # 热门标题文件
-      storage_state: "D:/pythonproject/Ai_Blogger/driver/playwright_data/zhihu_data/storage_state.json"
-      essay_file_json: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays.json"  # 知乎推文json文件
-      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/zhihu_essays_md"  # 知乎推文md文件
-      image_path: "D:/pythonproject/Ai_Blogger/Data/zhihu_images/"  # 知乎推文图片路径
+      hot_title_file: "./Data/zhihu_hot_titles.json"  # 热门标题文件
+      storage_state: "./driver/playwright_data/zhihu_data/storage_state.json"
+      essay_file_json: "./Data/zhihu_essays.json"  # 知乎推文json文件
+      essay_file_md: "./Data/zhihu_essays_md"  # 知乎推文md文件
+      image_path: "./Data/zhihu_images/"  # 知乎推文图片路径
 
 
   weibo:
@@ -86,11 +87,11 @@ platforms:
 
 
     paths:
-      hot_title_file: "D:/pythonproject/Ai_Blogger/Data/weibo_hot_titles.json"  # 热门标题文件
-      storage_state: "D:/pythonproject/Ai_Blogger/driver/playwright_data/weibo_data/storage_state.json"
-      essay_file_json: "D:/pythonproject/Ai_Blogger/Data/weibo_essays.json"  # 微博推文json文件
-      essay_file_md: "D:/pythonproject/Ai_Blogger/Data/weibo_essays_md"  # 微博推文md文件
-      image_path: "D:/pythonproject/Ai_Blogger/Data/weibo/"  # 微博推文图片路径
+      hot_title_file: "./Data/weibo_hot_titles.json"  # 热门标题文件
+      storage_state: "./driver/playwright_data/weibo_data/storage_state.json"
+      essay_file_json: "./Data/weibo_essays.json"  # 微博推文json文件
+      essay_file_md: "./Data/weibo_essays_md"  # 微博推文md文件
+      image_path: "./Data/weibo/"  # 微博推文图片路径
 
 # 内容生成流水线配置
 content_pipeline:

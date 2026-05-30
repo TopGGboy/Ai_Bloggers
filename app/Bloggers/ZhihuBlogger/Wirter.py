@@ -5,7 +5,7 @@ from app.tools.LoggingConfig import LoggingConfig
 from app.core.config_manager import config
 from app.tools.Str2Md import Str2Md
 from app.Bloggers.BaseWriter import BaseWriter
-from app.Bloggers.ZhihuBlogger.enums import ZhihuPublishType
+from app.Bloggers.ZhihuBlogger.PublishTypeEnums import ZhihuPublishType
 
 
 class ZhihuWriter(BaseWriter):
