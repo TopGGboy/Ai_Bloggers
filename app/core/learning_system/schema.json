@@ -1,0 +1,574 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AI推文分析记录",
+  "description": "用于存储和驱动自学习算法的一条推文完整数据结构，含内容特征、表现反馈和上下文。",
+  "type": "object",
+  "required": [
+    "post_id",
+    "author_id",
+    "platform",
+    "created_at",
+    "content_features",
+    "performance_feedback",
+    "context"
+  ],
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "推文唯一ID",
+      "x-mvp": true
+    },
+    "author_id": {
+      "type": "string",
+      "description": "发布者ID",
+      "x-mvp": true
+    },
+    "platform": {
+      "type": "string",
+      "description": "发布平台，如 twitter、weibo、xiaohongshu",
+      "x-mvp": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "发布时间，ISO 8601 格式",
+      "x-mvp": true
+    },
+    "timezone": {
+      "type": "string",
+      "description": "发布者时区，如 Asia/Shanghai",
+      "x-mvp": false
+    },
+    "is_reply": {
+      "type": "boolean",
+      "description": "是否为回复推文",
+      "x-mvp": false
+    },
+    "is_quote_tweet": {
+      "type": "boolean",
+      "description": "是否为引用推文",
+      "x-mvp": false
+    },
+    "is_retweet": {
+      "type": "boolean",
+      "description": "是否为转发",
+      "x-mvp": false
+    },
+    "reply_to_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "被回复/引用的原推ID",
+      "x-mvp": false
+    },
+    "content_features": {
+      "type": "object",
+      "description": "推文内容的结构化特征",
+      "x-mvp": true,
+      "required": [
+        "surface_text",
+        "hook_and_structure",
+        "topic_and_semantics",
+        "multimedia"
+      ],
+      "properties": {
+        "surface_text": {
+          "type": "object",
+          "description": "表层文本特征",
+          "required": [
+            "text_full",
+            "char_count"
+          ],
+          "properties": {
+            "text_full": {
+              "type": "string",
+              "description": "原始全文",
+              "x-mvp": true
+            },
+            "text_clean": {
+              "type": "string",
+              "description": "去标签、@、链接后的纯文本",
+              "x-mvp": false
+            },
+            "char_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "字符数",
+              "x-mvp": true
+            },
+            "word_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "词数/字数",
+              "x-mvp": false
+            },
+            "sentence_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "句子数",
+              "x-mvp": false
+            },
+            "paragraph_breaks": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "换行次数",
+              "x-mvp": false
+            },
+            "has_poll": {
+              "type": "boolean",
+              "description": "是否包含投票",
+              "x-mvp": false
+            },
+            "has_mention": {
+              "type": "boolean",
+              "description": "是否@他人",
+              "x-mvp": false
+            },
+            "mention_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "@次数",
+              "x-mvp": false
+            },
+            "has_link": {
+              "type": "boolean",
+              "description": "是否带链接",
+              "x-mvp": false
+            },
+            "link_domain": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "链接域名",
+              "x-mvp": false
+            }
+          }
+        },
+        "hook_and_structure": {
+          "type": "object",
+          "description": "钩子与结构特征",
+          "required": [
+            "hook_type",
+            "structure_type",
+            "cta_type"
+          ],
+          "properties": {
+            "hook_type": {
+              "type": "string",
+              "description": "开头类型，如提问、惊人事实、痛点共鸣、反常识、悬念、直接陈述等",
+              "x-mvp": true
+            },
+            "hook_contains_number": {
+              "type": "boolean",
+              "description": "钩子是否含数字",
+              "x-mvp": false
+            },
+            "hook_emotion": {
+              "type": "string",
+              "description": "钩子情绪，如惊讶、好奇、愤怒、温暖等",
+              "x-mvp": false
+            },
+            "structure_type": {
+              "type": "string",
+              "description": "整体结构，如清单体、故事体、观点论证、对话体、问题-方案等",
+              "x-mvp": true
+            },
+            "cta_type": {
+              "type": "string",
+              "description": "结尾行动号召，如评论、点赞、转发、点击链接、关注等",
+              "x-mvp": true
+            },
+            "cta_position": {
+              "type": "string",
+              "description": "CTA位置：前/中/后/无",
+              "x-mvp": false
+            }
+          }
+        },
+        "language_style": {
+          "type": "object",
+          "description": "语言风格与可读性",
+          "required": [],
+          "properties": {
+            "avg_sentence_length": {
+              "type": "number",
+              "minimum": 0,
+              "description": "平均句长",
+              "x-mvp": false
+            },
+            "readability_score": {
+              "type": "number",
+              "description": "可读性指数（如Flesch）",
+              "x-mvp": false
+            },
+            "sentiment_polarity": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1,
+              "description": "情感倾向，-1负面到1正面",
+              "x-mvp": false
+            },
+            "sentiment_variance": {
+              "type": "number",
+              "minimum": 0,
+              "description": "情感波动程度",
+              "x-mvp": false
+            },
+            "pronoun_usage": {
+              "type": "object",
+              "description": "人称代词使用比例",
+              "properties": {
+                "first_person_ratio": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "第一人称比例"
+                },
+                "second_person_ratio": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "第二人称比例"
+                }
+              }
+            },
+            "jargon_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "术语占比",
+              "x-mvp": false
+            },
+            "emoji_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "表情符号数量",
+              "x-mvp": false
+            },
+            "caps_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "全大写词比例",
+              "x-mvp": false
+            },
+            "has_bracket_aside": {
+              "type": "boolean",
+              "description": "是否使用括号或破折号插入口语化补充",
+              "x-mvp": false
+            }
+          }
+        },
+        "topic_and_semantics": {
+          "type": "object",
+          "description": "主题与内容语义",
+          "required": [
+            "hashtag_list",
+            "primary_topic"
+          ],
+          "properties": {
+            "hashtag_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "话题标签列表",
+              "x-mvp": true
+            },
+            "hashtag_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "标签数量",
+              "x-mvp": false
+            },
+            "primary_topic": {
+              "type": "string",
+              "description": "主主题",
+              "x-mvp": true
+            },
+            "sub_topic": {
+              "type": "string",
+              "description": "子主题",
+              "x-mvp": false
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "提取的实体（人名、品牌等）",
+              "x-mvp": false
+            },
+            "content_pillar": {
+              "type": "string",
+              "description": "内容支柱：教育、娱乐、灵感、新闻、促销、互动提问等",
+              "x-mvp": false
+            },
+            "content_angle": {
+              "type": "string",
+              "description": "切入角度：教程、案例、观点、资源推荐、工具测评等",
+              "x-mvp": false
+            },
+            "is_evergreen": {
+              "type": "boolean",
+              "description": "是否常青内容",
+              "x-mvp": false
+            },
+            "is_trend_related": {
+              "type": "boolean",
+              "description": "是否基于热点",
+              "x-mvp": false
+            },
+            "trend_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "追踪的具体热点名",
+              "x-mvp": false
+            }
+          }
+        },
+        "multimedia": {
+          "type": "object",
+          "description": "多媒体特征",
+          "required": [
+            "media_type"
+          ],
+          "properties": {
+            "media_type": {
+              "type": "string",
+              "enum": [
+                "无",
+                "图片",
+                "视频",
+                "GIF",
+                "音频"
+              ],
+              "description": "媒体类型，无/图片/视频/GIF/音频",
+              "x-mvp": true
+            },
+            "media_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "媒体数量",
+              "x-mvp": false
+            },
+            "image_style": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "图片风格：纯文字图/数据图/实拍/插画/表情包等",
+              "x-mvp": false
+            },
+            "video_duration_sec": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "description": "视频时长(秒)",
+              "x-mvp": false
+            }
+          }
+        }
+      }
+    },
+    "performance_feedback": {
+      "type": "object",
+      "description": "发布后的表现与反馈数据，用于定义“高质量”",
+      "x-mvp": true,
+      "required": [
+        "impressions",
+        "likes",
+        "retweets",
+        "replies",
+        "bookmarks",
+        "link_clicks",
+        "follows_gained"
+      ],
+      "properties": {
+        "impressions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "展示量/阅读量",
+          "x-mvp": true
+        },
+        "likes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "点赞数",
+          "x-mvp": true
+        },
+        "retweets": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "转发/分享数",
+          "x-mvp": true
+        },
+        "replies": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "评论数",
+          "x-mvp": true
+        },
+        "quote_tweets": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "引用转发数",
+          "x-mvp": false
+        },
+        "bookmarks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "收藏/保存数",
+          "x-mvp": true
+        },
+        "link_clicks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "链接点击数",
+          "x-mvp": true
+        },
+        "profile_clicks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "个人主页点击",
+          "x-mvp": false
+        },
+        "follows_gained": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "由此推文带来的新增关注（估算）",
+          "x-mvp": true
+        },
+        "negative_feedback": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "负面反馈数（隐藏/举报等）",
+          "x-mvp": false
+        },
+        "reply_sentiment": {
+          "type": "object",
+          "description": "评论情感分布",
+          "properties": {
+            "positive": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "neutral": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "negative": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "engagement_rate_by_impression": {
+          "type": "number",
+          "minimum": 0,
+          "description": "按展示的互动率"
+        },
+        "engagement_rate_by_followers": {
+          "type": "number",
+          "minimum": 0,
+          "description": "按当时粉丝数的互动率"
+        },
+        "reply_velocity": {
+          "type": "object",
+          "description": "分时段互动速度",
+          "properties": {
+            "1h": {
+              "type": "number",
+              "minimum": 0
+            },
+            "3h": {
+              "type": "number",
+              "minimum": 0
+            },
+            "24h": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "lifetime_value_48h_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "48小时后仍来的流量占比"
+        },
+        "quality_score": {
+          "type": "number",
+          "description": "综合质量分，可用加权公式计算"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "发布时的上下文环境",
+      "x-mvp": true,
+      "required": [
+        "follower_count_at_post"
+      ],
+      "properties": {
+        "follower_count_at_post": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "发布时的粉丝数",
+          "x-mvp": true
+        },
+        "average_engagement_7d": {
+          "type": "number",
+          "minimum": 0,
+          "description": "前7天平均互动率",
+          "x-mvp": false
+        },
+        "day_of_week": {
+          "type": "string",
+          "description": "星期几",
+          "x-mvp": false
+        },
+        "time_of_day_hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23,
+          "description": "几点(小时)",
+          "x-mvp": false
+        },
+        "is_weekend": {
+          "type": "boolean",
+          "description": "是否周末",
+          "x-mvp": false
+        },
+        "post_frequency_before_24h": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "发布前24小时发帖量",
+          "x-mvp": false
+        },
+        "is_paid_promotion": {
+          "type": "boolean",
+          "description": "是否投流/推广",
+          "x-mvp": false
+        },
+        "competitor_similar_post_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "参考竞品推文ID",
+          "x-mvp": false
+        }
+      }
+    }
+  }
+}

@@ -255,6 +255,11 @@ class ConfigManager:
         """获取竞品平台配置"""
         return self._config['content_pipeline']['competition_platform']
 
+    @property
+    def learning_system(self) -> str:
+        """获取自学习系统配置"""
+        return self._config['learning_system']
+
     def get(self, path: str, default=None):
         """获取嵌套配置值，支持路径访问如 'app.log_level'"""
         keys = path.split('.')

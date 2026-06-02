@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from app.core.config_manager import config, ConfigManager
-from app.core.MultiPlatformManager import MultiPlatformManager, PlatformMode
+from app.core.multi_platform_manager import MultiPlatformManager, PlatformMode
 
 logger = logging.getLogger(__name__)
 
@@ -61,12 +61,12 @@ async def close_manager(manager: MultiPlatformManager):
 def resolve_platform_class(platform_name: str) -> Tuple[type, Any]:
     """平台名 → (control_class, publish_type_enum)"""
     if platform_name == "zhihu":
-        from app.Bloggers.ZhihuBlogger.Control import ZhihuAsyncControl
-        from app.Bloggers.ZhihuBlogger.PublishTypeEnums import ZhihuPublishType
+        from app.bloggers.ZhihuBlogger.Control import ZhihuAsyncControl
+        from app.bloggers.ZhihuBlogger.PublishTypeEnums import ZhihuPublishType
         return ZhihuAsyncControl, ZhihuPublishType
     elif platform_name == "weibo":
-        from app.Bloggers.WeiboBlogger.Control import WeiboAsyncControl
-        from app.Bloggers.WeiboBlogger.enums import WeiboPublishType
+        from app.bloggers.WeiboBlogger.Control import WeiboAsyncControl
+        from app.bloggers.WeiboBlogger.enums import WeiboPublishType
         return WeiboAsyncControl, WeiboPublishType
     else:
         raise ValueError(f"未知平台: {platform_name}")

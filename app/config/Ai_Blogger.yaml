@@ -106,6 +106,12 @@ content_pipeline:
       max_content: 1
       max_comments: 0
 
+# 自学习系统配置
+learning_system:
+  enabled: true
+  model: "deepseek-v4-flash"
+
+
 
 prompts:
   auto_optimize: false      # AI 自动优化开关 (第一阶段关闭)

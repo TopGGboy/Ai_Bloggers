@@ -22,8 +22,8 @@ from app.cli.utils.helper import (
     get_sensitive_leaf_keys,
 )
 from app.core.config_manager import config
-from app.core.PromptManager import get_prompt_manager
-from app.core.MultiPlatformManager import MultiPlatformManager
+from app.core.prompt_manager import get_prompt_manager
+from app.core.multi_platform_manager import MultiPlatformManager
 
 
 class AiBloggerREPL:

@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 
-from app.core.PromptManager import get_prompt_manager
+from app.core.prompt_manager import get_prompt_manager
 from app.cli.utils.helper import (
     print_json,
     get_known_platforms,

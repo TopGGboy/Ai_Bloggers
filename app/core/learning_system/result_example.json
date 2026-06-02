@@ -1,0 +1,112 @@
+{
+  "post_id": "2016869402193175389",
+  "author_id": "",
+  "platform": "zhihu",
+  "created_at": "2026-03-16T13:32:17",
+  "timezone": "Asia/Shanghai",
+  "is_reply": false,
+  "is_quote_tweet": false,
+  "is_retweet": false,
+  "reply_to_id": null,
+  "content_category": "answer/normal",
+  "content_features": {
+    "surface_text": {
+      "text_full": "记者暗访 10 家美宜佳便利店均卖假烟，暴露出哪些问题？售卖假烟需承担哪些法律责任？\n关于”记者暗访 10 家美宜佳便利店均卖假烟，暴露出哪些问题？售卖假烟需承担哪些法律责任？”的思考这个问题登上了知乎热榜第一，引起了广泛关注。作为一名关注社会热点的观察者，我想分享一些个人见解： 问题分析这个问题反映了当前社会对相关领域的关注，值得我们深入思考： 社会意义：这个问题触及了大众关心的核心议题现实影响：对个人和社会都有实际影响讨论价值：促进了公众对话和思考建议与思考基于我的观察，建议： 保…",
+      "text_clean": "记者暗访 10 家美宜佳便利店均卖假烟，暴露出哪些问题？售卖假烟需承担哪些法律责任？\n关于”记者暗访 10 家美宜佳便利店均卖假烟，暴露出哪些问题？售卖假烟需承担哪些法律责任？”的思考这个问题登上了知乎热榜第一，引起了广泛关注。作为一名关注社会热点的观察者，我想分享一些个人见解： 问题分析这个问题反映了当前社会对相关领域的关注，值得我们深入思考： 社会意义：这个问题触及了大众关心的核心议题现实影响：对个人和社会都有实际影响讨论价值：促进了公众对话和思考建议与思考基于我的观察，建议： 保…",
+      "char_count": 203,
+      "word_count": 119,
+      "sentence_count": 4,
+      "paragraph_breaks": 0,
+      "has_poll": false,
+      "has_mention": false,
+      "mention_count": 0,
+      "has_link": false,
+      "link_domain": null
+    },
+    "hook_and_structure": {
+      "hook_type": "惊人事实",
+      "hook_contains_number": true,
+      "hook_emotion": "愤怒",
+      "structure_type": "观点论证",
+      "cta_type": "无",
+      "cta_position": "无"
+    },
+    "language_style": {
+      "avg_sentence_length": 50.75,
+      "readability_score": 0.0,
+      "sentiment_polarity": 1.0,
+      "sentiment_variance": 0.0,
+      "pronoun_usage": {
+        "first_person_ratio": 0.0252,
+        "second_person_ratio": 0.0
+      },
+      "jargon_ratio": 0.0,
+      "emoji_count": 193,
+      "caps_ratio": 0.0,
+      "has_bracket_aside": false
+    },
+    "topic_and_semantics": {
+      "primary_topic": "卖假烟",
+      "sub_topic": "法律责任",
+      "entities": [
+        "美宜佳",
+        "记者",
+        "假烟"
+      ],
+      "content_pillar": "新闻",
+      "content_angle": "案例分享",
+      "is_evergreen": false,
+      "is_trend_related": true,
+      "trend_name": "美宜佳假烟事件"
+    },
+    "multimedia": {
+      "media_type": "无",
+      "media_count": 0,
+      "image_style": null,
+      "video_duration_sec": null
+    }
+  },
+  "performance_feedback": {
+    "impressions": 0,
+    "likes": 0,
+    "retweets": 0,
+    "replies": 0,
+    "quote_tweets": 0,
+    "bookmarks": 0,
+    "link_clicks": 0,
+    "profile_clicks": 0,
+    "follows_gained": 0,
+    "negative_feedback": 0,
+    "reply_sentiment": {
+      "positive": 0.0,
+      "neutral": 0.0,
+      "negative": 0.0
+    },
+    "engagement_rate_by_impression": 0.0,
+    "engagement_rate_by_followers": 0.0,
+    "reply_velocity": {},
+    "lifetime_value_48h_ratio": 0.0,
+    "quality_score": 0.0
+  },
+  "context": {
+    "follower_count_at_post": 0,
+    "average_engagement_7d": 0.0,
+    "day_of_week": "周一",
+    "time_of_day_hour": 13,
+    "is_weekend": false,
+    "post_frequency_before_24h": 0,
+    "is_paid_promotion": false,
+    "competitor_similar_post_id": null
+  },
+  "learning_tags": {
+    "is_hit": false,
+    "is_low_effect": false,
+    "sample_weight": 1.0
+  },
+  "crawl_meta": {
+    "crawl_time": "2026-06-02T16:00:00.000352",
+    "generate_type": "ai_auto",
+    "is_video": false,
+    "content_status": "normal"
+  }
+}
