@@ -1,4 +1,3 @@
-# app/core/config_manager.py
 import os
 import re
 import logging
@@ -29,7 +28,7 @@ class ConfigManager:
         ("platforms.zhihu.user_name", "ZHIHU_USERNAME", ""),
         ("platforms.zhihu.password", "ZHIHU_PASSWORD", ""),
         ("platforms.weibo.user_name", "WEIBU_USERNAME", ""),
-        ("platforms.weibo.password", "WEIBU_PASSWORD", ""),
+        ("platforms.weibo.password", "WEIBO_PASSWORD", ""),
         ("platforms.zhihu.tools.create_image.api_key", "QWEN_API_KEY", ""),
     ]
 
@@ -82,29 +81,37 @@ class ConfigManager:
 
     def _resolve_relative_paths(self, config: Dict[str, Any]):
         """
-        将配置中所有表示文件路径的字段从相对路径解析为绝对路径。
+        递归扫描整个配置树，将所有以 './' 或 '.\\' 开头的字符串值
+        解析为基于 PROJECT_ROOT 的绝对路径。
 
-        解析规则：
-        - app.logfile_path / app.temp_path / app.base_driver_path
-        - 所有 platforms.*.paths.* 下的字符串值
-        - 仅解析字符串值中以 './' 或 '.\' 开头的相对路径
+        这样无论 YAML 配置中路径字段放在什么位置
+        （app.xxx / platforms.*.paths.* / storage.sqlite_path / 未来新字段），
+        都能自动解析，无需每次手动添加。
         """
-        # 1. 解析 app 级别的路径字段
-        app_cfg = config.get('app', {})
-        for key in ('logfile_path', 'temp_path', 'base_driver_path'):
-            if key in app_cfg and isinstance(app_cfg[key], str):
-                app_cfg[key] = self._to_absolute(app_cfg[key])
+        self._resolve_paths_recursive(config)
 
-        # 2. 解析所有平台下的 paths 字段
-        platforms = config.get('platforms', {})
-        if isinstance(platforms, dict):
-            for platform_name, platform_cfg in platforms.items():
-                if isinstance(platform_cfg, dict):
-                    paths = platform_cfg.get('paths', {})
-                    if isinstance(paths, dict):
-                        for path_key, path_val in paths.items():
-                            if isinstance(path_val, str):
-                                paths[path_key] = self._to_absolute(path_val)
+    def _resolve_paths_recursive(self, data):
+        """递归遍历配置字典/列表，解析所有相对路径"""
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, str) and self._is_relative_path(value):
+                    data[key] = self._to_absolute(value)
+                elif isinstance(value, (dict, list)):
+                    self._resolve_paths_recursive(value)
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                if isinstance(item, str) and self._is_relative_path(item):
+                    data[i] = self._to_absolute(item)
+                elif isinstance(item, (dict, list)):
+                    self._resolve_paths_recursive(item)
+
+    @staticmethod
+    def _is_relative_path(s: str) -> bool:
+        """判断一个字符串是否是以相对路径开头的文件路径"""
+        return (
+                s.startswith('./') or s.startswith('.\\') or
+                s.startswith('../') or s.startswith('..\\')
+        )
 
     def _to_absolute(self, path_str: str) -> str:
         """如果 path_str 是相对路径，基于项目根目录解析为绝对路径"""
@@ -259,6 +266,23 @@ class ConfigManager:
     def learning_system(self) -> str:
         """获取自学习系统配置"""
         return self._config['learning_system']
+
+    @property
+    def storage_engine(self) -> str:
+        """获取数据库引擎类型"""
+        return self._config.get('storage', {}).get('engine', 'sqlite')
+
+    @property
+    def storage_db_path(self) -> Path:
+        """获取数据库文件路径（已由 _resolve_relative_paths 转为绝对路径）"""
+        storage_cfg = self._config.get('storage', {})
+        path = storage_cfg.get('sqlite_path', './Data/ai_blogger.db')
+        return Path(path)
+
+    @property
+    def storage_auto_migrate(self) -> bool:
+        """是否自动执行数据库迁移"""
+        return self._config.get('storage', {}).get('auto_migrate', True)
 
     def get(self, path: str, default=None):
         """获取嵌套配置值，支持路径访问如 'app.log_level'"""

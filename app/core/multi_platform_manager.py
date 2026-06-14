@@ -12,6 +12,7 @@ from app.bloggers.base_platform import BasePlatform
 from app.tools.logging_config import LoggingConfig
 from app.core.config_manager import config
 from app.bloggers.base_platform import PlatformMode
+from app.core.storage import storage
 
 
 # ==================== 常量定义 ====================
@@ -313,6 +314,12 @@ class MultiPlatformManager:
         try:
             self.task_stats.start_time = datetime.now()
             self.base_driver_path.mkdir(parents=True, exist_ok=True)
+
+            # ===== 新增：初始化存储层 =====
+            await storage.initialize(
+                db_path=config.storage_db_path,
+                auto_migrate=config.storage_auto_migrate,
+            )
 
             # 启动浏览器
             self.driver = AsyncPlaywrightDriver(base_data_dir=str(self.base_driver_path))

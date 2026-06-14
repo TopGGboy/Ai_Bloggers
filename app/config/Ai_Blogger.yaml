@@ -61,8 +61,8 @@ platforms:
 
   weibo:
     login_type: "username_and_password"   # 登录方式，可选值："username_and_password"或"qrcode"
-    user_name: "${WEIBU_USERNAME}"          # ← 从环境变量读取
-    password: "${WEIBU_PASSWORD}"           # ← 从环境变量读取
+    user_name: "${WEIBO_USERNAME}"          # ← 从环境变量读取
+    password: "${WEIBO_PASSWORD}"           # ← 从环境变量读取
     check_interval: 600  # 监控间隔，秒数
     login_timeout: 60000  # 登录超时时间，单位毫秒
     element_timeout: 3000  # 元素等待超时时间，单位毫秒
@@ -110,6 +110,12 @@ content_pipeline:
 learning_system:
   enabled: true
   model: "deepseek-v4-flash"
+
+# 数据库存储配置
+storage:
+  engine: "sqlite"                     # 数据库引擎: sqlite | mysql (预留)
+  sqlite_path: "./Data/ai_blogger.db"  # SQLite 文件路径
+  auto_migrate: true                   # 启动时自动建表/迁移
 
 
 

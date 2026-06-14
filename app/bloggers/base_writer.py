@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from app.core.config_manager import config
 from app.tools.logging_config import LoggingConfig
 from app.tools.str_to_md import Str2Md
+from app.core.storage import storage
+from app.core.storage.models import ContentRecord
 
 
 class BaseWriter(ABC):
@@ -19,6 +21,7 @@ class BaseWriter(ABC):
     """
 
     def __init__(self, platform_name: str, publish_type=None):
+        self.platform_name = platform_name
         # 日志
         self.log = LoggingConfig(log_file_path=config.logfile_path, log_level=config.log_level).get_logger(
             self.__class__.__name__)
@@ -142,13 +145,29 @@ class BaseWriter(ABC):
 
     async def _save_content(self, raw_content, sanitized_title: str,
                             original_title: str):
-        """统一保存内容为 JSON 文件"""
+        """统一保存内容为 JSON 文件 + SQLite"""
         try:
             # 通过钩子构建 JSON 数据
             json_data = self._build_json_data(original_title, raw_content, sanitized_title)
             await self._append_to_json(json_data)
-            self.log.info(f"✅ JSON 文件已追加")
 
+            # 同步写入 SQLite
+            if storage.is_initialized:
+                try:
+                    record = ContentRecord(
+                        platform=self.platform_name if hasattr(self, 'platform_name') else 'unknown',
+                        publish_type=str(self.publish_type) if self.publish_type else 'article',
+                        title=original_title,
+                        content=json_data.get('content', ''),
+                        status='generated',
+                    )
+                    content_id = await storage.save_content(record)
+                    # 将 content_id 传回给调用方（用于后续状态更新）
+                    json_data['_content_id'] = content_id
+                    self.log.info(f"✅ 内容已写入 SQLite (id={content_id[:8]}...)")
+                except Exception as e:
+                    self.log.warning(f"写入 SQLite 失败（不影响主流程）: {e}")
+            self.log.info(f"✅ JSON 文件已追加")
             return json_data
 
         except Exception as e:
