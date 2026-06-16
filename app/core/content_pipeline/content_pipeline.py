@@ -310,12 +310,25 @@ class EnhancedContentPipeline(BaseContentPipeline):
         Returns:
             (带有风格指引的用户提示词, 消息历史)
         """
+        # 注入历史数据风格建议
+        style_guidance = ""
+        try:
+            from app.core.learning_system.feedback_loop import (
+                ContentStrategyOptimizer
+            )
+            optimizer = ContentStrategyOptimizer(self.platform_name)
+            style_guidance = await optimizer.get_style_guidance(title)
+        except Exception as e:
+            self.log.debug(f"获取风格建议失败（非致命）: {e}")
+
         try:
             style_prompt = f"""
             请分析以下创作需求，确定最适合的写作策略：
 
             创作需求：
             {user_prompt[:1000]}
+            
+            {style_guidance}
 
             请确定：
             1. 写作风格（专业分析/通俗易懂/幽默风趣/深度思考等）

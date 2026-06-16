@@ -30,34 +30,35 @@ class ExpertReview:
 @dataclass
 class QualityScore:
     """质量评分数据类"""
-    handwriting_score: float = 0.0  # 手写感 (1-10)
-    information_density: float = 0.0  # 信息密度 (1-10)
-    viewpoint_uniqueness: float = 0.0  # 观点独特性 (1-10)
-    structure_readability: float = 0.0  # 结构可读性 (1-10)
-    platform_adaptation: float = 0.0  # 平台适配度 (1-10)
+    handwriting_score: float = 0.0
+    information_density: float = 0.0
+    viewpoint_uniqueness: float = 0.0
+    structure_readability: float = 0.0
+    platform_adaptation: float = 0.0
+    weights_override: Optional[Dict[str, float]] = None  # 动态权重覆盖
 
     @property
     def overall_score(self) -> float:
-        """综合得分（可配置权重）"""
-        weights = {
-            'handwriting_score': 0.30,  # 手写感最重要
-            'information_density': 0.25,  # 信息密度次之
-            'viewpoint_uniqueness': 0.20,  # 观点独特性
-            'structure_readability': 0.15,  # 结构可读性
-            'platform_adaptation': 0.10,  # 平台适配度
+        """综合得分（支持动态权重）"""
+        weights = self.weights_override or {
+            'handwriting_score': 0.30,
+            'information_density': 0.25,
+            'viewpoint_uniqueness': 0.20,
+            'structure_readability': 0.15,
+            'platform_adaptation': 0.10,
         }
         return sum([
-            self.handwriting_score * weights['handwriting_score'],
-            self.information_density * weights['information_density'],
-            self.viewpoint_uniqueness * weights['viewpoint_uniqueness'],
-            self.structure_readability * weights['structure_readability'],
-            self.platform_adaptation * weights['platform_adaptation'],
+            self.handwriting_score * weights.get('handwriting_score', 0.30),
+            self.information_density * weights.get('information_density', 0.25),
+            self.viewpoint_uniqueness * weights.get('viewpoint_uniqueness', 0.20),
+            self.structure_readability * weights.get('structure_readability', 0.15),
+            self.platform_adaptation * weights.get('platform_adaptation', 0.10),
         ])
 
     def to_dict(self) -> dict:
         return {
             **asdict(self),
-            'overall_score': self.overall_score
+            'overall_score': self.overall_score,
         }
 
 

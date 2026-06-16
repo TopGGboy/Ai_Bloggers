@@ -26,7 +26,7 @@ AsyncStorageManager — 异步存储管理器
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Union, Dict, Any
 
@@ -371,6 +371,79 @@ class AsyncStorageManager:
             ),
         )
         return record.id
+
+    async def query_learning_with_performance(
+            self,
+            platform: str,
+            days: int = 30,
+            min_samples: int = 10,
+    ) -> List[dict]:
+        """
+        查询学习记录 + 表现数据的关联数据（自学习反馈闭环核心接口）
+
+        三表 JOIN：
+          learning_records  ←  NLP + LLM 分析结果
+          performance_metrics  ←  平台表现数据
+          contents  ←  内容元信息
+
+        Returns:
+            [{
+                content_id, title,
+                surface_text: dict,        # JSON 已解析
+                language_style: dict,
+                hook_and_structure: dict,
+                topic_and_semantics: dict,
+                multimedia: dict,
+                context: dict,
+                engagement_rate, likes, impressions, comments, shares,
+                collected_at,
+            }, ...]
+        """
+        since = (datetime.now() - timedelta(days=days)).isoformat()
+
+        rows = await self._fetchall(
+            """SELECT
+                   c.id as content_id, c.title, c.platform,
+                   lr.surface_text, lr.hook_and_structure,
+                   lr.language_style, lr.topic_and_semantics,
+                   lr.multimedia, lr.context,
+                   p.engagement_rate, p.likes, p.impressions,
+                   p.comments, p.shares, p.bookmarks,
+                   p.collected_at
+                FROM learning_records lr
+                JOIN contents c ON c.id = lr.content_id
+                JOIN performance_metrics p ON p.content_id = c.id
+                WHERE c.platform = ?
+                  AND c.status = 'published'
+                  AND p.collected_at >= ?
+                ORDER BY p.engagement_rate DESC""",
+            (platform, since),
+        )
+
+        # JSON 字段自动解析
+        json_fields = {
+            "surface_text", "hook_and_structure", "language_style",
+            "topic_and_semantics", "multimedia", "context",
+        }
+        result = []
+        for row in rows:
+            d = dict(row)
+            for key in json_fields:
+                raw = d.get(key)
+                if isinstance(raw, str):
+                    try:
+                        d[key] = json.loads(raw)
+                    except (json.JSONDecodeError, TypeError):
+                        d[key] = {}
+                elif raw is None:
+                    d[key] = {}
+            result.append(d)
+
+        # 过滤最小样本数
+        if len(result) < min_samples:
+            return []
+
+        return result
 
     async def get_learning_record(
             self, content_id: str
